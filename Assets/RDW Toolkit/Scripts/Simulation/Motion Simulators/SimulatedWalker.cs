@@ -89,7 +89,7 @@ public class SimulatedWalker : MonoBehaviour {
             //Debug.Log("Expected Translation: " + (distanceToTravel * RedirectionManager.flatten3D(redirectionManager.getUserForward3D()).normalized).ToString("F4"));
             //print("WALK AMOUNT: " + distanceToTravel);
             //print("distance to travel: "+distanceToTravel);
-            transform.Translate(distanceToTravel * Utilities.FlattenedPos3D(redirectionManager.currDir).normalized, Space.World);
+            transform.Translate(distanceToTravel * Utilities.FlattenedPos3D(redirectionManager.currState.dir).normalized, Space.World);
             //Debug.Log("Travelled: " + distanceToTravel);
         }
         else
@@ -101,8 +101,8 @@ public class SimulatedWalker : MonoBehaviour {
 
     void GetDistanceAndRotationToWaypoint(out float rotationToTargetInDegrees, out Vector3 userToTargetVectorFlat)
     {
-        userToTargetVectorFlat = Utilities.FlattenedPos3D(redirectionManager.targetWaypoint.position - redirectionManager.currPos);
-        rotationToTargetInDegrees = Utilities.GetSignedAngle(Utilities.FlattenedDir3D(redirectionManager.currDir), userToTargetVectorFlat);
+        userToTargetVectorFlat = Utilities.FlattenedPos3D(redirectionManager.targetWaypoint.position - redirectionManager.currState.pos);
+        rotationToTargetInDegrees = Utilities.GetSignedAngle(Utilities.FlattenedDir3D(redirectionManager.currState.dir), userToTargetVectorFlat);
     }
 
 }

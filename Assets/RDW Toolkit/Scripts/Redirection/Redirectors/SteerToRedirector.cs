@@ -18,7 +18,7 @@ public abstract class SteerToRedirector : Redirector {
     private const float SMOOTHING_FACTOR = 0.125f; // Smoothing factor for redirection rotations
 
     // Reference Parameters
-    protected Transform currentTarget; //Where the participant  is currently directed?
+    protected Transform currentTarget; //Where the participant is currently directed?
     protected GameObject tmpTarget;
 
     // State Parameters
@@ -49,8 +49,8 @@ public abstract class SteerToRedirector : Redirector {
         }
 
         //Compute desired facing vector for redirection
-        Vector3 desiredFacingDirection = Utilities.FlattenedPos3D(currentTarget.position) - redirectionManager.currPos;
-        int desiredSteeringDirection = (-1) * (int)Mathf.Sign(Utilities.GetSignedAngle(redirectionManager.currDir, desiredFacingDirection)); // We have to steer to the opposite direction so when the user counters this steering, she steers in right direction
+        Vector3 desiredFacingDirection = Utilities.FlattenedPos3D(currentTarget.position) - redirectionManager.currState.pos;
+        int desiredSteeringDirection = (-1) * (int)Mathf.Sign(Utilities.GetSignedAngle(redirectionManager.currState.dir, desiredFacingDirection)); // We have to steer to the opposite direction so when the user counters this steering, she steers in right direction
 
         //Compute proposed rotation gain
         rotationFromRotationGain = 0;
@@ -83,7 +83,7 @@ public abstract class SteerToRedirector : Redirector {
         {
             //DAMPENING METHODS
             // MAHDI: Sinusiodally scaling the rotation when the bearing is near zero
-            float bearingToTarget = Vector3.Angle(redirectionManager.currDir, desiredFacingDirection);
+            float bearingToTarget = Vector3.Angle(redirectionManager.currState.dir, desiredFacingDirection);
             if (useBearingThresholdBasedRotationDampeningTimofey)
             {
                 // TIMOFEY
@@ -93,7 +93,8 @@ public abstract class SteerToRedirector : Redirector {
             else
             {
                 // MAHDI
-                // The algorithm first is explained to be similar to above but at the end it is explained like this. Also the BEARING_THRESHOLD_FOR_DAMPENING value was never mentioned which make me want to use the following even more.
+                // The algorithm first is explained to be similar to above but at the end it is explained like this.
+                // Also the BEARING_THRESHOLD_FOR_DAMPENING value was never mentioned which make me want to use the following even more.
                 rotationProposed *= Mathf.Sin(Mathf.Deg2Rad * bearingToTarget);
             }
 

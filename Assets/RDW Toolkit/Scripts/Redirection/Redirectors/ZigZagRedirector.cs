@@ -121,7 +121,7 @@ public class ZigZagRedirector : Redirector
 
     void updateWaypoint()
     {
-        bool userIsNearTarget = Utilities.FlattenedPos3D(redirectionManager.currPos - waypoints[waypointIndex].position).magnitude < WAYPOINT_UPDATE_DISTANCE;
+        bool userIsNearTarget = Utilities.FlattenedPos3D(redirectionManager.currState.pos - waypoints[waypointIndex].position).magnitude < WAYPOINT_UPDATE_DISTANCE;
         bool userHasSlownDown = redirectionManager.deltaPos.magnitude / redirectionManager.GetDeltaTime() < SLOW_DOWN_VELOCITY_THRESHOLD;
         bool userHasMoreWaypointsLeft = waypointIndex < waypoints.Count - 1;
         if (userIsNearTarget && userHasSlownDown && userHasMoreWaypointsLeft && !redirectionManager.inReset)
@@ -163,11 +163,11 @@ public class ZigZagRedirector : Redirector
         virtualTargetPosition = Utilities.FlattenedPos3D(waypoints[waypointIndex].position);
         realTargetPosition = headingToTarget0 ? Utilities.FlattenedPos3D(realTarget0.position) : Utilities.FlattenedPos3D(realTarget1.position);
         realTargetPositionRelative = headingToTarget0 ? Utilities.FlattenedPos3D(Utilities.GetRelativePosition(realTarget0.position, this.transform)) : Utilities.FlattenedPos3D(Utilities.GetRelativePosition(realTarget1.position, this.transform));
-        angleToRealTarget = Utilities.GetSignedAngle(redirectionManager.currDir, realTargetPosition - redirectionManager.currPos);
-        angleToVirtualTarget = Utilities.GetSignedAngle(redirectionManager.currDir, virtualTargetPosition - redirectionManager.currPos);
-        distanceToRealTarget = (realTargetPositionRelative - redirectionManager.currPosReal).magnitude;
-        userToVirtualTarget = virtualTargetPosition - redirectionManager.currPos;
-        userToRealTarget = realTargetPosition - redirectionManager.currPos;
+        angleToRealTarget = Utilities.GetSignedAngle(redirectionManager.currState.dir, realTargetPosition - redirectionManager.currState.pos);
+        angleToVirtualTarget = Utilities.GetSignedAngle(redirectionManager.currState.dir, virtualTargetPosition - redirectionManager.currState.pos);
+        distanceToRealTarget = (realTargetPositionRelative - redirectionManager.currState.posReal).magnitude;
+        userToVirtualTarget = virtualTargetPosition - redirectionManager.currState.pos;
+        userToRealTarget = realTargetPosition - redirectionManager.currState.pos;
         //requiredAngleInjection = angleToTarget - angleToRealTarget;
         requiredAngleInjection = Utilities.GetSignedAngle(userToRealTarget, userToVirtualTarget);
         
@@ -232,7 +232,7 @@ public class ZigZagRedirector : Redirector
         g_r = g_r > 0 ? Mathf.Min(g_r, redirectionManager.MAX_ROT_GAIN) : Mathf.Max(g_r, redirectionManager.MIN_ROT_GAIN);
 
         // Don't do translation if you're still checking out the previous target
-        if ((redirectionManager.currPos - Utilities.FlattenedPos3D(waypoints[waypointIndex - 1].position)).magnitude < WAYPOINT_UPDATE_DISTANCE)
+        if ((redirectionManager.currState.pos - Utilities.FlattenedPos3D(waypoints[waypointIndex - 1].position)).magnitude < WAYPOINT_UPDATE_DISTANCE)
             g_t = 0;
 
         // Translation Gain

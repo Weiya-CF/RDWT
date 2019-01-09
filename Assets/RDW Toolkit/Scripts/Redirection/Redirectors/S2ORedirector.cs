@@ -12,7 +12,7 @@ public class S2ORedirector : SteerToRedirector {
     public override void PickRedirectionTarget()
     {
         Vector3 trackingAreaPosition = Utilities.FlattenedPos3D(redirectionManager.trackedSpace.position);
-        Vector3 userToCenter = trackingAreaPosition - redirectionManager.currPos;
+        Vector3 userToCenter = trackingAreaPosition - redirectionManager.currState.pos;
 
         //Compute steering target for S2O
         if (noTmpTarget)
@@ -42,8 +42,8 @@ public class S2ORedirector : SteerToRedirector {
 
         //Step Three: Evaluate difference in direction
         // We don't care about angle sign here
-        float angle1 = Vector3.Angle(redirectionManager.currDir, targetPosition1 - redirectionManager.currPos);
-        float angle2 = Vector3.Angle(redirectionManager.currDir, targetPosition2 - redirectionManager.currPos);
+        float angle1 = Vector3.Angle(redirectionManager.currState.dir, targetPosition1 - redirectionManager.currState.pos);
+        float angle2 = Vector3.Angle(redirectionManager.currState.dir, targetPosition2 - redirectionManager.currState.pos);
 
         currentTarget.transform.position = (angle1 <= angle2) ? targetPosition1 : targetPosition2;
     }

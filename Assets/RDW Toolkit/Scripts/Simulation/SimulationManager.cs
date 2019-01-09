@@ -10,7 +10,7 @@ public class SimulationManager : MonoBehaviour {
 
     //enum AlgorithmChoice { S2C, S2O, GreedyTransGain, S2C_GreedyTransGain, S2O_GreedyTransGain, CenterBased, CenterBasedTransGainSpeedUp, S2C_CenterBasedTransGainSpeedUp, S2O_CenterBasedTransGainSpeedUp, None };
     enum ExperimentChoice { FixedTrackedSpace, VaryingSizes, VaryingShapes };
-    enum AlgorithmChoice {None, S2C, S2O, Zigzag};
+    enum AlgorithmChoice {None, S2C, S2O, Zigzag, MPC};
     enum PathSeedChoice { Office, ExplorationSmall, ExplorationLarge, LongWalk, ZigZag };
     enum ResetChoice { None, TwoOneTurn };
 
@@ -564,7 +564,7 @@ public class SimulationManager : MonoBehaviour {
         //}
 
         // Setting Random Seed
-        Random.seed = VirtualPathGenerator.RANDOM_SEED;
+        Random.InitState(VirtualPathGenerator.RANDOM_SEED);
 
         // Make sure VSync doesn't slow us down
         
@@ -660,15 +660,18 @@ public class SimulationManager : MonoBehaviour {
                 case AlgorithmChoice.Zigzag:
                     redirectorType = typeof(ZigZagRedirector);
                     break;
-                //case 4:
-                //    algorithmChoice = AlgorithmChoice.CenterBasedTransGainSpeedUp;
-                //    break;
-                //case 5:
-                //    algorithmChoice = AlgorithmChoice.S2C_CenterBasedTransGainSpeedUp;
-                //    break;
-                //case 6:
-                //    algorithmChoice = AlgorithmChoice.S2O_CenterBasedTransGainSpeedUp;
-                //    break;
+                case AlgorithmChoice.MPC:
+                    redirectorType = typeof(MPCRedirector);
+                    break;
+                    //case 4:
+                    //    algorithmChoice = AlgorithmChoice.CenterBasedTransGainSpeedUp;
+                    //    break;
+                    //case 5:
+                    //    algorithmChoice = AlgorithmChoice.S2C_CenterBasedTransGainSpeedUp;
+                    //    break;
+                    //case 6:
+                    //    algorithmChoice = AlgorithmChoice.S2O_CenterBasedTransGainSpeedUp;
+                    //    break;
             }
             switch (condReset)
             {
@@ -1058,7 +1061,7 @@ public class SimulationManager : MonoBehaviour {
 
     void updateSimulatedWaypointIfRequired()
     {
-        if ((redirectionManager.currPos - Utilities.FlattenedPos3D(redirectionManager.targetWaypoint.position)).magnitude < DISTANCE_TO_WAYPOINT_THRESHOLD)
+        if ((redirectionManager.currState.pos - Utilities.FlattenedPos3D(redirectionManager.targetWaypoint.position)).magnitude < DISTANCE_TO_WAYPOINT_THRESHOLD)
         {
             redirectionManager.simulationManager.updateWaypoint();
         }

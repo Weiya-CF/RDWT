@@ -15,18 +15,18 @@ public class S2CRedirector : SteerToRedirector {
     public override void PickRedirectionTarget()
     {
         Vector3 trackingAreaPosition = Utilities.FlattenedPos3D(redirectionManager.trackedSpace.position);
-        Vector3 userToCenter = trackingAreaPosition - redirectionManager.currPos;
+        Vector3 userToCenter = trackingAreaPosition - redirectionManager.currState.pos;
 
         //Compute steering target for S2C
-        float bearingToCenter = Vector3.Angle(userToCenter, redirectionManager.currDir);
-        float directionToCenter = Utilities.GetSignedAngle(redirectionManager.currDir, userToCenter);
+        float bearingToCenter = Vector3.Angle(userToCenter, redirectionManager.currState.dir);
+        float directionToCenter = Utilities.GetSignedAngle(redirectionManager.currState.dir, userToCenter);
         if (bearingToCenter >= S2C_BEARING_ANGLE_THRESHOLD_IN_DEGREE && !dontUseTempTargetInS2C)
         {
             //Generate temporary target
             if (noTmpTarget)
             {
                 tmpTarget = new GameObject("S2C Temp Target");
-                tmpTarget.transform.position = redirectionManager.currPos + S2C_TEMP_TARGET_DISTANCE * (Quaternion.Euler(0, directionToCenter * 90, 0) * redirectionManager.currDir);
+                tmpTarget.transform.position = redirectionManager.currState.pos + S2C_TEMP_TARGET_DISTANCE * (Quaternion.Euler(0, directionToCenter * 90, 0) * redirectionManager.currState.dir);
                 tmpTarget.transform.parent = transform;
                 noTmpTarget = false;
             }

@@ -15,7 +15,8 @@ public abstract class Redirector : MonoBehaviour
     public abstract void ApplyRedirection();
 
     /// <summary>
-    /// Applies rotation to Redirected User. The neat thing about calling it this way is that we can keep track of gains applied.
+    /// Applies rotation to Redirected User. The neat thing about calling it this way is that
+    /// we can keep track of gains applied.
     /// </summary>
     /// <param name="rotationInDegrees"></param>
     protected void InjectRotation(float rotationInDegrees)
@@ -30,7 +31,8 @@ public abstract class Redirector : MonoBehaviour
 
 
     /// <summary>
-    /// Applies curvature to Redirected User. The neat thing about calling it this way is that we can keep track of gains applied.
+    /// Applies curvature to Redirected User. The neat thing about calling it this way is that
+    /// we can keep track of gains applied.
     /// </summary>
     /// <param name="rotationInDegrees"></param>
     protected void InjectCurvature(float rotationInDegrees)
@@ -44,7 +46,8 @@ public abstract class Redirector : MonoBehaviour
     }
 
     /// <summary>
-    /// Applies rotation to Redirected User. The neat thing about calling it this way is that we can keep track of gains applied.
+    /// Applies translation to Redirected User. The neat thing about calling it this way is that
+    /// we can keep track of gains applied.
     /// </summary>
     /// <param name="translation"></param>
     protected void InjectTranslation(Vector3 translation)

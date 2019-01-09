@@ -356,7 +356,7 @@ public class StatisticsLogger : MonoBehaviour {
     {
         if (state == LoggingState.logging)
         {
-            print("event_rotation_gain_reorientation NOT IMPLEMENTED.");
+            //print("event_rotation_gain_reorientation NOT IMPLEMENTED.");
             //throw new System.NotImplementedException();
 
             ////if (testing)
@@ -430,10 +430,10 @@ public class StatisticsLogger : MonoBehaviour {
         Event_User_Rotated(redirectionManager.deltaDir);
         Event_User_Translated(Utilities.FlattenedPos2D(redirectionManager.deltaPos));
         
-        userRealPositionSamplesBuffer.Add(redirectionManager.GetDeltaTime() * Utilities.FlattenedPos2D(redirectionManager.currPosReal));
-        userVirtualPositionSamplesBuffer.Add(redirectionManager.GetDeltaTime() * Utilities.FlattenedPos2D(redirectionManager.currPos));
+        userRealPositionSamplesBuffer.Add(redirectionManager.GetDeltaTime() * Utilities.FlattenedPos2D(redirectionManager.currState.posReal));
+        userVirtualPositionSamplesBuffer.Add(redirectionManager.GetDeltaTime() * Utilities.FlattenedPos2D(redirectionManager.currState.pos));
         distanceToNearestBoundarySamplesBuffer.Add(redirectionManager.GetDeltaTime() * redirectionManager.resetter.getDistanceToNearestBoundary());
-        distanceToCenterSamplesBuffer.Add(redirectionManager.GetDeltaTime() * redirectionManager.currPosReal.magnitude);
+        distanceToCenterSamplesBuffer.Add(redirectionManager.GetDeltaTime() * redirectionManager.currState.posReal.magnitude);
         //}
     }
 

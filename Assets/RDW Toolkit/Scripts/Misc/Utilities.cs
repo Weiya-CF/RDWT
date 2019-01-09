@@ -33,7 +33,8 @@ namespace Redirection
         }
 
         /// <summary>
-        /// Gets angle from prevDir to currDir in degrees, assuming the vectors lie in the xz plane (with left handed coordinate system).
+        /// Gets angle from prevDir to currDir in degrees, assuming the vectors lie in the xz plane
+        /// (with left handed coordinate system).
         /// </summary>
         /// <param name="currDir"></param>
         /// <param name="prevDir"></param>
@@ -68,6 +69,47 @@ namespace Redirection
         public static bool Approximately(Vector2 v0, Vector2 v1)
         {
             return Mathf.Approximately(v0.x, v1.x) && Mathf.Approximately(v0.y, v1.y);
+        }
+
+        /// <summary>
+        /// Get the intersection point of a ray with a segment
+        /// </summary>
+        /// <param name="rayPos"></param>
+        /// <param name="rayDir"></param>
+        /// <param name="segmentStart"></param>
+        /// <param name="segmentEnd"></param>
+        /// <returns>The intersection point, zero if there is no intersection</returns>
+        public static Vector2 GetIntersection(Vector2 rayPos, Vector2 rayDir, Vector2 segmentStart, Vector2 segmentEnd)
+        {
+            Vector2 segmentDir = (segmentEnd - segmentStart).normalized;
+            //Debug.Log("Get intersection");
+            //Debug.Log(segmentStart);
+            //Debug.Log(segmentEnd);
+            //Debug.Log(rayPos);
+            //Debug.Log(rayDir);
+
+            // They are parallel
+            if (Mathf.Approximately(rayDir.y*segmentDir.x, rayDir.x*segmentDir.y))
+            {
+               // Debug.Log("They are parallel");
+                return Vector2.zero;
+            }
+            else
+            {
+                float t2 = rayDir.y * (rayPos.x - segmentStart.x) + rayDir.x * (segmentStart.y - rayPos.y) / (rayDir.y * segmentDir.x - rayDir.x * segmentDir.y);
+                // the intersection is outside the segment range
+                if (t2 < 0 || t2 > (segmentEnd - segmentStart).magnitude)
+                {
+                    //Debug.Log("outside t2 = " + t2);
+                    return Vector2.zero;
+                }
+                else
+                {
+                    //Debug.Log("inside t2 = " + t2);
+                    return segmentStart + t2 * segmentDir;
+                }
+            }
+
         }
     }
 }

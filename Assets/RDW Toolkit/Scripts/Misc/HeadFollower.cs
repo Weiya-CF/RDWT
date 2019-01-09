@@ -13,8 +13,8 @@ public class HeadFollower : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        this.transform.position = redirectionManager.currPos;
-        if (redirectionManager.currDir != Vector3.zero)
-            this.transform.rotation = Quaternion.LookRotation(redirectionManager.currDir, Vector3.up);
+        this.transform.position = redirectionManager.currState.pos;
+        if (redirectionManager.currState.dir != Vector3.zero)
+            this.transform.rotation = Quaternion.LookRotation(redirectionManager.currState.dir, Vector3.up);
 	}
 }

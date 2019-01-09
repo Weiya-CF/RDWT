@@ -43,13 +43,13 @@ public abstract class Resetter : MonoBehaviour {
 
     public bool IsUserOutOfBounds()
     {
-        return Mathf.Abs(redirectionManager.currPosReal.x) >= maxX || Mathf.Abs(redirectionManager.currPosReal.z) >= maxZ;
+        return Mathf.Abs(redirectionManager.currState.posReal.x) >= maxX || Mathf.Abs(redirectionManager.currState.posReal.z) >= maxZ;
     }
 
 
     Boundary getNearestBoundary()
     {
-        Vector3 position = redirectionManager.currPosReal;
+        Vector3 position = redirectionManager.currState.posReal;
         if (position.x >= 0 && Mathf.Abs(maxX - position.x) <= Mathf.Min(Mathf.Abs(maxZ - position.z), Mathf.Abs(-maxZ - position.z))) // for a very wide rectangle, you can find that the first condition is actually necessary
             return Boundary.Right;
         if (position.x <= 0 && Mathf.Abs(-maxX - position.x) <= Mathf.Min(Mathf.Abs(maxZ - position.z), Mathf.Abs(-maxZ - position.z)))
@@ -78,7 +78,7 @@ public abstract class Resetter : MonoBehaviour {
 
     float getUserAngleWithNearestBoundary() // Away from Wall is considered Zero
     {
-        return Utilities.GetSignedAngle(redirectionManager.currDirReal, getAwayFromNearestBoundaryDirection());
+        return Utilities.GetSignedAngle(redirectionManager.currState.dirReal, getAwayFromNearestBoundaryDirection());
     }
 
     protected bool isUserFacingAwayFromWall()
@@ -93,12 +93,12 @@ public abstract class Resetter : MonoBehaviour {
 
     public float getDistanceToCenter()
     {
-        return redirectionManager.currPosReal.magnitude;
+        return redirectionManager.currState.posReal.magnitude;
     }
 
     public float getDistanceToNearestBoundary()
     {
-        Vector3 position = redirectionManager.currPosReal;
+        Vector3 position = redirectionManager.currState.posReal;
         Boundary nearestBoundary = getNearestBoundary();
         switch (nearestBoundary)
         {
@@ -116,8 +116,8 @@ public abstract class Resetter : MonoBehaviour {
 
     public float getMaxWalkableDistanceBeforeReset()
     {
-        Vector3 position = redirectionManager.currPosReal;
-        Vector3 direction = redirectionManager.currDirReal;
+        Vector3 position = redirectionManager.currState.posReal;
+        Vector3 direction = redirectionManager.currState.dirReal;
         float tMaxX = direction.x != 0 ? Mathf.Max((maxX - position.x) / direction.x, (-maxX - position.x) / direction.x) : float.MaxValue;
         float tMaxZ = direction.z != 0 ? Mathf.Max((maxZ - position.z) / direction.z, (-maxZ - position.z) / direction.z) : float.MaxValue;
         //print("MaxX: " + maxX);

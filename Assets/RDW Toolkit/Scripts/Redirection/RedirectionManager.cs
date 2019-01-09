@@ -1,9 +1,23 @@
 ﻿using UnityEngine;
-using System.Collections;
 using Redirection;
+using System.Collections.Generic;
+
 public class RedirectionManager : MonoBehaviour {
 
     public enum MovementController { Keyboard, AutoPilot, Tracker };
+
+    public struct State
+    {
+        public Vector3 pos, posReal;
+        public Vector3 dir, dirReal;
+
+        private void Reset()
+        {
+            pos = new Vector3(0, 0, 0); posReal = new Vector3(0, 0, 0);
+            dir = new Vector3(0, 0, 0); dirReal = new Vector3(0, 0, 0);
+        }
+
+    }; // the state of the environment
 
     [Tooltip("Select if you wish to run simulation from commandline in Unity batchmode.")]
     public bool runInTestMode = false;
@@ -39,10 +53,26 @@ public class RedirectionManager : MonoBehaviour {
 
     [Tooltip("Target simulated framerate in auto-pilot mode")]
     public float targetFPS = 60;
-    
-    
 
-    
+    [Tooltip("Tangent speed in auto-pilot mode")]
+    public float speedReal;
+
+    [Tooltip("Angular speed in auto-pilot mode")]
+    public float angularSpeedReal;
+
+
+    [HideInInspector]
+    public State currState;
+
+    [HideInInspector]
+    public State prevState;
+
+    [HideInInspector]
+    public Vector3 deltaPos = new Vector3(0, 0, 0);
+
+    [HideInInspector]
+    public float deltaDir = 0f;
+
     [HideInInspector]
     public Transform body;
     [HideInInspector]
@@ -70,18 +100,16 @@ public class RedirectionManager : MonoBehaviour {
     public StatisticsLogger statisticsLogger;
     [HideInInspector]
     public HeadFollower bodyHeadFollower;
-
-    [HideInInspector]
-    public Vector3 currPos, currPosReal, prevPos, prevPosReal;
-    [HideInInspector]
-    public Vector3 currDir, currDirReal, prevDir, prevDirReal;
-    [HideInInspector]
-    public Vector3 deltaPos;
-    [HideInInspector]
-    public float deltaDir;
+ 
     [HideInInspector]
     public Transform targetWaypoint;
 
+    [HideInInspector]
+    public float roomX; // room size in x
+    [HideInInspector]
+    public float roomZ; // room size in z
+    [HideInInspector]
+    public Vector2[] roomCorners; // the 4 corners of the room
 
     [HideInInspector]
     public bool inReset = false;
@@ -125,7 +153,8 @@ public class RedirectionManager : MonoBehaviour {
         SetReferenceForStatisticsLogger();
         SetReferenceForBodyHeadFollower();
 
-        // The rule is to have RedirectionManager call all "Awake"-like functions that rely on RedirectionManager as an "Initialize" call.
+        // The rule is to have RedirectionManager call all "Awake"-like functions 
+        // that rely on RedirectionManager as an "Initialize" call.
         resetTrigger.Initialize();
         // Resetter needs ResetTrigger to be initialized before initializing itself
         if (resetter != null)
@@ -145,6 +174,7 @@ public class RedirectionManager : MonoBehaviour {
 	// Use this for initialization
 	void Start () {
         simulatedTime = 0;
+        UpdateCurrentUserState();
         UpdatePreviousUserState();
 	}
 	
@@ -153,6 +183,8 @@ public class RedirectionManager : MonoBehaviour {
 
 	}
 
+    // LateUpdate is called every frame, if the Behaviour is enabled.
+    // LateUpdate is called after all Update functions have been called
     void LateUpdate()
     {
         simulatedTime += 1.0f / targetFPS;
@@ -191,6 +223,8 @@ public class RedirectionManager : MonoBehaviour {
 
         UpdateBodyPose();
     }
+
+    
 
     public float GetDeltaTime()
     {
@@ -355,44 +389,51 @@ public class RedirectionManager : MonoBehaviour {
 
     void GetBody()
     {
-        body = transform.FindChild("Body");
+        body = transform.Find("Body");
     }
 
     void GetTrackedSpace()
     {
-        trackedSpace = transform.FindChild("Tracked Space");
+        trackedSpace = transform.Find("Tracked Space");
+        this.roomX = this.trackedSpace.localScale.x;
+        this.roomZ = this.trackedSpace.localScale.z;
+        this.roomCorners = new Vector2[4];
+        this.roomCorners[0] = new Vector2(roomX / 2, roomZ / 2);
+        this.roomCorners[1] = new Vector2(roomX / 2, -roomZ / 2);
+        this.roomCorners[2] = new Vector2(-roomX / 2, -roomZ / 2);
+        this.roomCorners[3] = new Vector2(-roomX / 2, roomZ / 2);
     }
 
     void GetSimulatedHead()
     {
-        simulatedHead = transform.FindChild("Simulated User").FindChild("Head");
+        simulatedHead = transform.Find("Simulated User").Find("Head");
     }
 
     void GetTargetWaypoint()
     {
-        targetWaypoint = transform.FindChild("Target Waypoint").gameObject.transform;
+        targetWaypoint = transform.Find("Target Waypoint").gameObject.transform;
     }
 
     void UpdateCurrentUserState()
     {
-        currPos = Utilities.FlattenedPos3D(headTransform.position);
-        currPosReal = Utilities.GetRelativePosition(currPos, this.transform);
-        currDir = Utilities.FlattenedDir3D(headTransform.forward);
-        currDirReal = Utilities.FlattenedDir3D(Utilities.GetRelativeDirection(currDir, this.transform));
+        currState.pos = Utilities.FlattenedPos3D(headTransform.position);
+        currState.posReal = Utilities.GetRelativePosition(currState.pos, this.transform);
+        currState.dir = Utilities.FlattenedDir3D(headTransform.forward);
+        currState.dirReal = Utilities.FlattenedDir3D(Utilities.GetRelativeDirection(currState.dir, this.transform));
     }
 
     void UpdatePreviousUserState()
     {
-        prevPos = Utilities.FlattenedPos3D(headTransform.position);
-        prevPosReal = Utilities.GetRelativePosition(prevPos, this.transform);
-        prevDir = Utilities.FlattenedDir3D(headTransform.forward);
-        prevDirReal = Utilities.FlattenedDir3D(Utilities.GetRelativeDirection(prevDir, this.transform));
+        prevState.pos = Utilities.FlattenedPos3D(headTransform.position);
+        prevState.posReal = Utilities.GetRelativePosition(prevState.pos, this.transform);
+        prevState.dir = Utilities.FlattenedDir3D(headTransform.forward);
+        prevState.dirReal = Utilities.FlattenedDir3D(Utilities.GetRelativeDirection(prevState.dir, this.transform));
     }
 
     void CalculateStateChanges()
     {
-        deltaPos = currPos - prevPos;
-        deltaDir = Utilities.GetSignedAngle(prevDir, currDir);
+        deltaPos = currState.pos - prevState.pos;
+        deltaDir = Utilities.GetSignedAngle(prevState.dir, currState.dir);
     }
 
     public void OnResetTrigger()
@@ -457,6 +498,13 @@ public class RedirectionManager : MonoBehaviour {
     public void UpdateTrackedSpaceDimensions(float x, float z)
     {
         trackedSpace.localScale = new Vector3(x, 1, z);
+        this.roomX = trackedSpace.localScale.x;
+        this.roomZ = trackedSpace.localScale.z;
+        this.roomCorners[0] = new Vector2(roomX / 2, roomZ / 2);
+        this.roomCorners[1] = new Vector2(roomX / 2, -roomZ / 2);
+        this.roomCorners[2] = new Vector2(-roomX / 2, -roomZ / 2);
+        this.roomCorners[3] = new Vector2(-roomX / 2, roomZ / 2);
+
         resetTrigger.Initialize();
         if (this.resetter != null)
             this.resetter.Initialize();
