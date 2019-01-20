@@ -32,11 +32,13 @@ public class MPCRedirector : Redirector {
     private int planningHorizon = 5; // how many steps (stages) we look forward
     private float stageDuration = 2; // how long is a single stage
     private float declineFactor = 0.9f; // used in Plan method, the future state is less credible
-    private const float MOVEMENT_THRESHOLD = 0.2f; // meters per second
+    private const float MOVEMENT_THRESHOLD = 0.05f; // meters per second
     private const float ROTATION_THRESHOLD = 1.5f; // degrees per second
 
     Thread ChildThread = null;
+    EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
     private bool runningMPC = true;
+    public bool toPause = false;
  
     // FUNCTIONS
 
@@ -53,6 +55,11 @@ public class MPCRedirector : Redirector {
     {
         while (runningMPC)
         {
+            if (toPause)
+            {
+                this.PauseThread();
+            }
+
             // Do Update
             Debug.LogWarning("Starting MPC Loop");
             var watch = System.Diagnostics.Stopwatch.StartNew();
@@ -63,10 +70,21 @@ public class MPCRedirector : Redirector {
 
             watch.Stop();
             var deltaT = watch.ElapsedMilliseconds;
-            Debug.Log("best action: " + this.currAction.type + ", best cost: " + result.bestCost + ", duration: " + deltaT);
+            Debug.Log("best action: " + this.currAction.type + ", gain:" +this.currAction.gain +", best cost: " + result.bestCost + ", duration: " + deltaT);
             
-            Thread.Sleep(2000);
+            Thread.Sleep(1000);
         }
+    }
+
+    public void PauseThread()
+    {
+        ChildThreadWait.Reset();
+    }
+
+    public void ResumeThread()
+    {
+        this.toPause = false;
+        ChildThreadWait.Set();
     }
 
     public void Start()
@@ -91,10 +109,12 @@ public class MPCRedirector : Redirector {
     {
         this.actions = new List<Action>();
         this.actions.Add(new Action { type = ActionType.ZERO, gain = 0f, cost = 0f });
-        this.actions.Add(new Action { type = ActionType.ROTATION, gain = 1.2f, cost = 1f });
-        this.actions.Add(new Action { type = ActionType.ROTATION, gain = 0.8f, cost = 1f });
-        this.actions.Add(new Action { type = ActionType.CURVATURE, gain = 0.5f, cost = 1f });
-        this.actions.Add(new Action { type = ActionType.CURVATURE, gain = -0.5f, cost = 1f });
+        this.actions.Add(new Action { type = ActionType.ROTATION, gain = 1.2f, cost = 0f });
+        this.actions.Add(new Action { type = ActionType.ROTATION, gain = 0.8f, cost = 0f });
+        this.actions.Add(new Action { type = ActionType.CURVATURE, gain = 3f, cost = 0f });
+        this.actions.Add(new Action { type = ActionType.CURVATURE, gain = -3f, cost = 0f });
+        this.actions.Add(new Action { type = ActionType.CURVATURE, gain = 10f, cost = 1f });
+        this.actions.Add(new Action { type = ActionType.CURVATURE, gain = -10f, cost = 1f });
         this.actions.Add(new Action { type = ActionType.RESET, gain = 0f, cost = 500f });
     }
 
@@ -212,7 +232,8 @@ public class MPCRedirector : Redirector {
                 // The new real position depends on user's real orientation
                 newState.posReal.x = (Mathf.Sin(ori_0 + kr * s) - Mathf.Sin(ori_0)) / kr + state.posReal.x;
                 newState.posReal.z = (Mathf.Cos(ori_0) - Mathf.Cos(ori_0 + kr * s)) / kr + state.posReal.z;
-                newState.dirReal = Utilities.UnFlatten(Utilities.RotateVector(state.dirReal, s * kr));
+                newState.dirReal = Utilities.UnFlatten(Utilities.RotateVector(Utilities.FlattenedDir2D(state.dirReal), s * kr));
+                //Debug.Log("ssssssssssssssssss " + newState.dirReal);
             }
             else if (a.type == ActionType.ZERO)
             {
@@ -289,6 +310,7 @@ public class MPCRedirector : Redirector {
 
     public float GetStateCost(RedirectionManager.State state)
     {
+        //Debug.LogError("!!!!!!! " + state.dirReal);
         return TowardWallCost(state);
     }
 
@@ -315,6 +337,7 @@ public class MPCRedirector : Redirector {
                 interPoint = Utilities.GetIntersection(Utilities.FlattenedPos2D(state.posReal), 
                     Utilities.FlattenedDir2D(state.dirReal), this.redirectionManager.roomCorners[i%4],
                     this.redirectionManager.roomCorners[(i + 1)%4]);
+                
                 // if we find the intersection point
                 if (!interPoint.Equals(Vector2.zero))
                 {
@@ -325,12 +348,13 @@ public class MPCRedirector : Redirector {
             {
                 float costLimit = 0.1f; // the max cost will be 100 if distance=0
                 float distance = Vector2.Distance(Utilities.FlattenedPos2D(state.posReal), interPoint);
-                Debug.Log("user pos: " + state.posReal + " the interpoint is: " + interPoint+" distance: "+distance);
+                //Debug.Log("user pos: " + state.posReal + " the interpoint is: " + interPoint+" distance: "+distance);
                 return 10/(distance + costLimit);
             }
             else
             {
-                Debug.LogWarning("user pos: " + state.posReal+" dir: "+state.dirReal+" Error computing intersection point");
+                Debug.LogError("user v pos: " + state.pos + " v dir: " + state.dir);
+                Debug.LogError("user pos: " + state.posReal+" dir: "+state.dirReal+" Error computing intersection point");
                 return 0f;
             }
         }
@@ -405,7 +429,7 @@ public class MPCRedirector : Redirector {
             List<Action> allowedActions = GetAllowedActions(currSeg);
             //Debug.Log("GetAllowedActions");
             foreach (Action a in allowedActions) {
-                Debug.Log("depth=" + depth + ", action=" + a.type);
+                //Debug.Log("depth=" + depth + ", action=" + a.type);
                 cost = 0f;
                 if (a.cost < bestCost)
                 {
@@ -413,14 +437,15 @@ public class MPCRedirector : Redirector {
                     //Debug.Log("GetNextSegments");
                     foreach (var nextSeg in nextSegments)
                     {
+                        //Debug.Log("?????????? " + state.dirReal);
                         RedirectionManager.State nextState = ApplyStateUpdate(state, a, nextSeg);
                         //Debug.Log("ApplyStateUpdate");
                         float stateCost = GetStateCost(nextState);
                         cost += stateCost * nextSeg.proba;
-                        Debug.Log("state cost: " + stateCost);
+                        //Debug.Log("state cost: " + stateCost);
                         if(cost >= bestCost)
                         {
-                            Debug.Log("CUTOFF cost=" + cost + ", bestcost=" + bestCost);
+                            //Debug.Log("CUTOFF cost=" + cost + ", bestcost=" + bestCost);
                             break;
                         }
                         if(depth > 0)
@@ -431,11 +456,14 @@ public class MPCRedirector : Redirector {
                     }
                     if(cost < bestCost)
                     {
+                        //Debug.Log("update best cost, new best=" + cost + ", old bestcost=" + bestCost+", action: "+bestAction.type);
                         bestCost = cost;
                         bestAction = a;
                     }
                 }
             }
+            //Debug.LogWarning("Depth" + depth + " final best cost: " + bestCost + ", best action: " + bestAction.type
+            //    + ", gain: " + bestAction.gain);
             return new MPCResult { bestAction=bestAction, bestCost=bestCost};
         }
     }
@@ -446,11 +474,14 @@ public class MPCRedirector : Redirector {
         Vector3 deltaPos = redirectionManager.deltaPos;
         float deltaDir = redirectionManager.deltaDir;
 
+        
         if (deltaPos.magnitude / redirectionManager.GetDeltaTime() > MOVEMENT_THRESHOLD) // User is moving
         {
+            
             if (this.currAction.type == ActionType.CURVATURE)
             {
                 InjectCurvature(deltaPos.magnitude * this.currAction.gain);
+                //Debug.LogError("pppppppppp " + this.currAction.gain);
             }
             
         }

@@ -72,7 +72,7 @@ namespace Redirection
         }
 
         /// <summary>
-        /// Get the intersection point of a ray with a segment
+        /// Get the intersection point of a ray and a segment
         /// </summary>
         /// <param name="rayPos"></param>
         /// <param name="rayDir"></param>
@@ -91,12 +91,13 @@ namespace Redirection
             // They are parallel
             if (Mathf.Approximately(rayDir.y*segmentDir.x, rayDir.x*segmentDir.y))
             {
-               // Debug.Log("They are parallel");
+                //Debug.Log("They are parallel");
                 return Vector2.zero;
             }
             else
             {
-                float t2 = rayDir.y * (rayPos.x - segmentStart.x) + rayDir.x * (segmentStart.y - rayPos.y) / (rayDir.y * segmentDir.x - rayDir.x * segmentDir.y);
+                float t2 = (rayDir.y * (rayPos.x - segmentStart.x) + rayDir.x * (segmentStart.y - rayPos.y))
+                    / (rayDir.y * segmentDir.x - rayDir.x * segmentDir.y);
                 // the intersection is outside the segment range
                 if (t2 < 0 || t2 > (segmentEnd - segmentStart).magnitude)
                 {

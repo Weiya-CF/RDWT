@@ -9,7 +9,7 @@ public abstract class SteerToRedirector : Redirector {
     bool dontUseDampening = false;
 
     // User Experience Improvement Parameters
-    private const float MOVEMENT_THRESHOLD = 0.2f; // meters per second
+    private const float MOVEMENT_THRESHOLD = 0.1f; // meters per second
     private const float ROTATION_THRESHOLD = 1.5f; // degrees per second
     private const float CURVATURE_GAIN_CAP_DEGREES_PER_SECOND = 15;  // degrees per second
     private const float ROTATION_GAIN_CAP_DEGREES_PER_SECOND = 30;  // degrees per second

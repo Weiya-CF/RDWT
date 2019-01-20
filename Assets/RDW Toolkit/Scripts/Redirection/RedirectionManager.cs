@@ -448,6 +448,13 @@ public class RedirectionManager : MonoBehaviour {
             //print("RESET WAS REQUIRED");
             resetter.InitializeReset();
             inReset = true;
+
+            // stop the planning thread
+            if(redirector is MPCRedirector)
+            {
+                ((MPCRedirector)redirector).toPause = true;
+                Debug.LogWarning("planning is paused");
+            }
         }
     }
 
@@ -456,6 +463,13 @@ public class RedirectionManager : MonoBehaviour {
         //print("RESET END");
         resetter.FinalizeReset();
         inReset = false;
+
+        // start the planning thread
+        if (redirector is MPCRedirector)
+        {
+            ((MPCRedirector)redirector).ResumeThread();
+            Debug.LogWarning("planning is resumed");
+        }
     }
 
     public void RemoveRedirector()
