@@ -9,7 +9,7 @@ public abstract class Resetter : MonoBehaviour {
 
     enum Boundary { Top, Bottom, Right, Left };
 
-    float maxX, maxZ;
+    public float maxX, maxZ;
 
     /// <summary>
     /// Function called when reset trigger is signaled, to see if resetter believes resetting is necessary.

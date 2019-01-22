@@ -96,10 +96,12 @@ namespace Redirection
             }
             else
             {
+                float t1 = (segmentDir.x * (rayPos.y - segmentStart.y) + segmentDir.y * (segmentStart.x - rayPos.x))
+                    / (rayDir.x * segmentDir.y - rayDir.y * segmentDir.x);
                 float t2 = (rayDir.y * (rayPos.x - segmentStart.x) + rayDir.x * (segmentStart.y - rayPos.y))
                     / (rayDir.y * segmentDir.x - rayDir.x * segmentDir.y);
                 // the intersection is outside the segment range
-                if (t2 < 0 || t2 > (segmentEnd - segmentStart).magnitude)
+                if (t1<0 || t2 < 0 || t2 > (segmentEnd - segmentStart).magnitude)
                 {
                     //Debug.Log("outside t2 = " + t2);
                     return Vector2.zero;
