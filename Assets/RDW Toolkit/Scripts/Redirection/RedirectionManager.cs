@@ -8,8 +8,8 @@ public class RedirectionManager : MonoBehaviour {
 
     public struct State
     {
-        public Vector3 pos, posReal;
-        public Vector3 dir, dirReal;
+        public Vector3 pos, posReal; // user's virtual and real position
+        public Vector3 dir, dirReal; // user's virtual and real direction
 
         private void Reset()
         {

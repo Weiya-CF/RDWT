@@ -2,11 +2,10 @@
 using System.Collections.Generic;
 using Redirection;
 using System.Threading;
-using System;
 
 public class MPCRedirector : Redirector {
     // DEFINITIONS
-    public enum ActionType { ZERO, TRANSLATION, ROTATION, CURVATURE, RESET }; // Translation is not used
+    public enum ActionType { ZERO, TRANSLATION, ROTATION, CURVATURE, RESET }; // Translation is currently not used
 
     public struct Action
     {
@@ -18,39 +17,45 @@ public class MPCRedirector : Redirector {
     public struct MPCResult {
         public Action bestAction;
         public float bestCost;
-    }; // the result of planning method
+    }; // to store the result of planning method
 
     // VARIABLES
 
     private List<Action> actions;
     private List<Segment> segments;
-    private List<Transition> transitions;
-
-    private Action currAction;
-    public Segment currSeg;
+    private List<Transition> transitions; // a transition connects two segments
+    private Action currAction; // current action suggested by the redirector
+    private Segment currSeg; // current segment that the user is in
 
     private int planningHorizon = 5; // how many steps (stages) we look forward
     private float stageDuration = 2; // how long is a single stage
     private float declineFactor = 0.9f; // used in Plan method, the future state is less credible
+
+    // the user is considered static beneath these thresholds
     private const float MOVEMENT_THRESHOLD = 0.05f; // meters per second
     private const float ROTATION_THRESHOLD = 1.5f; // degrees per second
 
-    Thread ChildThread = null;
-    EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset);
+    Thread ChildThread = null; // we do planning on a separate thread
+    EventWaitHandle ChildThreadWait = new EventWaitHandle(true, EventResetMode.ManualReset); // for thread sync
     private bool runningMPC = true;
-    public bool toPause = false;
+    public bool toPause = false; // a flag to pause the planning while resetting
  
     // FUNCTIONS
 
     public void Awake()
     {
-        LoadActionsFromFile("");
-        LoadSegmentsAndTrans("");
+        // they are hard-written in the code for now
+        LoadActionsFromFile(""); // not done
+        LoadSegmentsAndTrans(""); // not done
 
+        // initialization
         this.currAction = GetZeroAction();
         this.currSeg = GetSegmentById(1);
     }
 
+    /// <summary>
+    /// This is the function called by the child thread.
+    /// </summary>
     void ChildThreadLoop()
     {
         while (runningMPC)
@@ -62,17 +67,17 @@ public class MPCRedirector : Redirector {
 
             // Do Update
             Debug.LogWarning("Starting MPC Loop at pos: "+this.redirectionManager.currState.posReal);
-            var watch = System.Diagnostics.Stopwatch.StartNew();
 
-            // the code that you want to measure comes here
+            var watch = System.Diagnostics.Stopwatch.StartNew(); // start a timer
+
             MPCResult result = Plan(this.redirectionManager.currState, this.currSeg, this.planningHorizon);
             this.currAction = result.bestAction;
 
-            watch.Stop();
+            watch.Stop(); // stop the timer
             var deltaT = watch.ElapsedMilliseconds;
             Debug.Log("best action: " + this.currAction.type + ", gain:" +this.currAction.gain +", best cost: " + result.bestCost + ", duration: " + deltaT);
             
-            //Thread.Sleep(1000);
+            //Thread.Sleep(1000); // use this if you want to be more stable
         }
     }
 
@@ -139,6 +144,12 @@ public class MPCRedirector : Redirector {
         //file.Close();
     }
 
+    /// <summary>
+    /// Each segment has an id, and segments are ordered with increasing id value.
+    /// Note: this is only a temporory setting that will be removed in future version
+    /// </summary>
+    /// <param name="id"></param> the id of a segment
+    /// <returns></returns>
     private Segment GetSegmentById(int id)
     {
         foreach (var seg in this.segments)
@@ -169,6 +180,12 @@ public class MPCRedirector : Redirector {
         return this.actions[0];
     }
 
+    /// <summary>
+    /// Get a list of allowed actions according to the type of segment,
+    /// eg. if the user is moving forward in a straight line, then no rotation gains are allowed.
+    /// </summary>
+    /// <param name="seg"></param> the query segment
+    /// <returns></returns>
     public List<MPCRedirector.Action> GetAllowedActions(Segment seg)
     {
         List<MPCRedirector.Action> list = new List<MPCRedirector.Action>();
@@ -185,6 +202,11 @@ public class MPCRedirector : Redirector {
         return list;
     }
 
+    /// <summary>
+    /// To see if we need to update the current segment according to user's state.
+    /// Whether a user stays at current segment, or he/she will jump into the next segment if near the end of the current one.
+    /// </summary>
+    /// <param name="state"></param> the state of the environment
     public void UpdateCurrentSegment(RedirectionManager.State state)
     {
         if (currSeg.IsEndOfSegment(state))
@@ -206,6 +228,7 @@ public class MPCRedirector : Redirector {
 
     /// <summary>
     /// Get an estimate of the future state based on the current state, redirector's action and the path to be followed.
+    /// ATTENTION: This method is only used for simulation(planning)! A user's actual state is only updated by the tracking system.
     /// </summary>
     /// <param name="s"></param> the current state of the environment.
     /// <param name="a"></param> action to be taken by the redirector.
@@ -311,6 +334,11 @@ public class MPCRedirector : Redirector {
         return newState;
     }
 
+    /// <summary>
+    /// Compute the cost associated with a given state, currently only TowardWallCost is used.
+    /// </summary>
+    /// <param name="state"></param>
+    /// <returns>a scalar cost value</returns>
     public float GetStateCost(RedirectionManager.State state)
     {
         float cost = TowardWallCost(state);
@@ -323,7 +351,7 @@ public class MPCRedirector : Redirector {
     /// When inside, the cost is inverse proportional to the longest walking distance described in the FORCE paper.
     /// </summary>
     /// <param name="state"></param>
-    /// <returns></returns>
+    /// <returns>a scalar cost value</returns>
     private float TowardWallCost(RedirectionManager.State state)
     {
         // outside the tracking space
@@ -350,7 +378,7 @@ public class MPCRedirector : Redirector {
             }
             if (!interPoint.Equals(Vector2.zero))
             {
-                float costLimit = 0.1f; // the max cost will be 100 if distance=0
+                float costLimit = 0.1f; // the max cost will be 100 if distance=0, this is to avoid 0-division 
                 float distance = Vector2.Distance(Utilities.FlattenedPos2D(state.posReal), interPoint);
                 //Debug.Log("pos: " + state.posReal + ", the interpoint is: " + interPoint
                 //    +", distance: "+distance + ", cost:"+ 10 / (distance + costLimit));
@@ -364,62 +392,13 @@ public class MPCRedirector : Redirector {
         }
     }
 
-
-   /* #region ExponentiallySmoothedOrientation
-    //St=a*yt+(1-a)*St-1
-    private void ExponentiallySmoothedSample(bool closing)
-    {
-        float tempY = 0;
-        if (!closing)
-        {
-            switch (count)
-            {
-                case 0:
-                    if (velocity <= 0.2) exponentialFactorUse = exponentialFactorStatic;
-                    else exponentialFactorUse = exponentialFactorMove;
-                    orientationSequence.Insert(count, playerTransform.GetComponent<Transform>().rotation.eulerAngles.y);
-                    ++count;
-                    break;
-                case 1:
-                    tempY = playerTransform.GetComponent<Transform>().rotation.eulerAngles.y - orientationSequence[0];
-                    if (tempY > 300) --carryBit;
-                    else if (tempY < -300) ++carryBit;
-                    tempY = playerTransform.GetComponent<Transform>().rotation.eulerAngles.y + 360 * carryBit;
-                    orientationSequence.Insert(2 * count, tempY);
-                    ++count;
-                    break;
-                case 2:
-                    tempY = playerTransform.GetComponent<Transform>().rotation.eulerAngles.y - orientationSequence[2];
-                    if (tempY > 300) --carryBit;
-                    else if (tempY < -300) ++carryBit;
-                    tempY = playerTransform.GetComponent<Transform>().rotation.eulerAngles.y + 360 * carryBit;
-                    orientationSequence.Insert(2 * count, tempY);
-                    orientationSequence.Insert(1, (orientationSequence[0] + orientationSequence[2] + orientationSequence[4]) / 3);
-                    orientationSequence.Insert(3, exponentialFactorUse * orientationSequence[2] + (1 - exponentialFactorUse) * orientationSequence[1]);
-                    orientationSequence.Insert(5, exponentialFactorUse * orientationSequence[4] + (1 - exponentialFactorUse) * orientationSequence[3]);
-                    ++count;
-                    break;
-                default:
-                    tempY = playerTransform.GetComponent<Transform>().rotation.eulerAngles.y - orientationSequence[2 * count - 2];
-                    if (tempY > 300) --carryBit;
-                    else if (tempY < -300) ++carryBit;
-                    tempY = playerTransform.GetComponent<Transform>().rotation.eulerAngles.y + 360 * carryBit;
-                    orientationSequence.Insert(2 * count, tempY);
-                    orientationSequence.Insert(2 * count + 1, exponentialFactorUse * orientationSequence[2 * count] + (1 - exponentialFactorUse) * orientationSequence[2 * count - 1]);
-                    ++count;
-                    break;
-            }
-        }
-        else
-        {
-            finalOrientation = (exponentialFactorUse * orientationSequence[2 * (count - 1)] + (1 - exponentialFactorUse) * orientationSequence[2 * (count - 1) + 1]) % 360;
-            count = 0;
-            timerOrientation++;
-            carryBit = 0;
-        }
-    }
-    #endregion ExponentiallySmoothedOrientation*/
-
+    /// <summary>
+    /// The main MPC K-stage forward planning, this is basically depth-first tree search with branch cutting.
+    /// </summary>
+    /// <param name="state"></param> current state
+    /// <param name="currSeg"></param> current segment of the user
+    /// <param name="depth"></param> the planning depth
+    /// <returns></returns>
     public MPCResult Plan(RedirectionManager.State state, Segment currSeg, int depth) {
         //Debug.Log("Plan called");
         if (depth == 0)
@@ -487,6 +466,9 @@ public class MPCRedirector : Redirector {
         }
     }
 
+    /// <summary>
+    /// This overrides the same function in parent class. 
+    /// </summary>
     public override void ApplyRedirection()
     {
         // Get Required Data
@@ -496,13 +478,11 @@ public class MPCRedirector : Redirector {
         
         if (deltaPos.magnitude / redirectionManager.GetDeltaTime() > MOVEMENT_THRESHOLD) // User is moving
         {
-            
             if (this.currAction.type == ActionType.CURVATURE)
             {
                 InjectCurvature(deltaPos.magnitude * this.currAction.gain * Mathf.Rad2Deg);
                 //Debug.LogError("pppppppppp " + this.currAction.gain);
-            }
-            
+            }   
         }
 
         if (Mathf.Abs(deltaDir) / redirectionManager.GetDeltaTime() >= ROTATION_THRESHOLD)  // if User is rotating
@@ -517,14 +497,14 @@ public class MPCRedirector : Redirector {
 }
 
 /// <summary>
-/// This is a primitive of user's path in the VE, it can be of type Line, Arc or Rotation.
+/// This is a primitive of user's current action, e.g. moving in a line, an arc or rotating in place.
 /// We assume that user will keep the same motion until the current segment is finished.
 /// </summary>
 public abstract class Segment
 {
     public int id; // id starts from 1
-    public float proba;
-    public List<Transition> transitions;
+    public float proba; // this probability is computed according to the segment tree
+    public List<Transition> transitions; // each segment will have one or more transitions that will lead to other segments
 
     // the threshold to activate the termination of current segment
     public const float DISTANCE_THRESHOLD = 0.3f; // meter
@@ -534,14 +514,20 @@ public abstract class Segment
 
     public abstract bool IsEndOfSegment(RedirectionManager.State currState);
 
+    /// <summary>
+    /// Add this segment as the starting segment for a given transition
+    /// </summary>
+    /// <param name="t"></param>
     public void AddTransition(Transition t)
     {
         if(t.startSeg.Equals(this))
             this.transitions.Add(t);
     }
-
 }
 
+/// <summary>
+/// The user is moving in a straight line
+/// </summary>
 public class LineSegment : Segment
 {
     public Vector2 startPos;
@@ -588,6 +574,9 @@ public class LineSegment : Segment
     }
 }
 
+/// <summary>
+/// The user is moving along an arc, we know everything about the arc.
+/// </summary>
 public class ArcSegment : Segment
 {
     public Vector2 startPos;
@@ -632,6 +621,9 @@ public class ArcSegment : Segment
     }
 }
 
+/// <summary>
+/// The user rotates in place (i.e. without moving).
+/// </summary>
 public class RotationSegment : Segment
 {
     public Vector2 pos;

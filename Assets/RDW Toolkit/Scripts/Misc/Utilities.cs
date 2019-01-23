@@ -74,10 +74,10 @@ namespace Redirection
         /// <summary>
         /// Get the intersection point of a ray and a segment
         /// </summary>
-        /// <param name="rayPos"></param>
-        /// <param name="rayDir"></param>
-        /// <param name="segmentStart"></param>
-        /// <param name="segmentEnd"></param>
+        /// <param name="rayPos"></param> the starting position of the ray
+        /// <param name="rayDir"></param> the direction normal of the ray
+        /// <param name="segmentStart"></param> starting point of a segment
+        /// <param name="segmentEnd"></param> ending point of a segment
         /// <returns>The intersection point, zero if there is no intersection</returns>
         public static Vector2 GetIntersection(Vector2 rayPos, Vector2 rayDir, Vector2 segmentStart, Vector2 segmentEnd)
         {
@@ -100,15 +100,14 @@ namespace Redirection
                     / (rayDir.x * segmentDir.y - rayDir.y * segmentDir.x);
                 float t2 = (rayDir.y * (rayPos.x - segmentStart.x) + rayDir.x * (segmentStart.y - rayPos.y))
                     / (rayDir.y * segmentDir.x - rayDir.x * segmentDir.y);
-                // the intersection is outside the segment range
+                // the intersection is outside the segment range, or the range of ray
                 if (t1<0 || t2 < 0 || t2 > (segmentEnd - segmentStart).magnitude)
                 {
-                    //Debug.Log("outside t2 = " + t2);
                     return Vector2.zero;
                 }
                 else
                 {
-                    //Debug.Log("inside t2 = " + t2);
+                    // or: rayPos + t1 * rayDir;
                     return segmentStart + t2 * segmentDir;
                 }
             }
