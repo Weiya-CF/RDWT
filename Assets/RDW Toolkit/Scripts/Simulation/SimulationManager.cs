@@ -10,7 +10,7 @@ public class SimulationManager : MonoBehaviour {
 
     //enum AlgorithmChoice { S2C, S2O, GreedyTransGain, S2C_GreedyTransGain, S2O_GreedyTransGain, CenterBased, CenterBasedTransGainSpeedUp, S2C_CenterBasedTransGainSpeedUp, S2O_CenterBasedTransGainSpeedUp, None };
     enum ExperimentChoice { FixedTrackedSpace, VaryingSizes, VaryingShapes };
-    enum AlgorithmChoice {None, S2C, S2O, Zigzag, MPC};
+    enum AlgorithmChoice {None, S2C, S2O, Zigzag, MPC, Q};
     enum PathSeedChoice { Office, ExplorationSmall, ExplorationLarge, LongWalk, ZigZag };
     enum ResetChoice { None, TwoOneTurn };
 
@@ -662,6 +662,9 @@ public class SimulationManager : MonoBehaviour {
                     break;
                 case AlgorithmChoice.MPC:
                     redirectorType = typeof(MPCRedirector);
+                    break;
+                case AlgorithmChoice.Q:
+                    redirectorType = typeof(QLearningTrainer);
                     break;
                     //case 4:
                     //    algorithmChoice = AlgorithmChoice.CenterBasedTransGainSpeedUp;
