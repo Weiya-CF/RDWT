@@ -664,7 +664,7 @@ public class SimulationManager : MonoBehaviour {
                     redirectorType = typeof(MPCRedirector);
                     break;
                 case AlgorithmChoice.Q:
-                    redirectorType = typeof(QLearningTrainer);
+                    redirectorType = typeof(QLearningRedirector);
                     break;
                     //case 4:
                     //    algorithmChoice = AlgorithmChoice.CenterBasedTransGainSpeedUp;

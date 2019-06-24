@@ -119,7 +119,7 @@ public class RedirectionManager : MonoBehaviour {
 
     private float simulatedTime = 0;
 
-    private Rasterization rasterization;
+    private GridEnvironment rasterization;
 
     void Awake()
     {
@@ -228,7 +228,7 @@ public class RedirectionManager : MonoBehaviour {
         UpdateBodyPose();
     }
 
-    public void GetRasterization() { rasterization = gameObject.GetComponent<Rasterization>(); }
+    public void GetRasterization() { rasterization = gameObject.GetComponent<GridEnvironment>(); }
 
     public float GetDeltaTime()
     {
@@ -449,7 +449,6 @@ public class RedirectionManager : MonoBehaviour {
         //print("Is Resetter Null? " + (resetter == null));
         if (resetter != null && resetter.IsResetRequired())
         {
-            rasterization.resetState = 1;
             //print("RESET WAS REQUIRED");
             resetter.InitializeReset();
             inReset = true;
@@ -465,7 +464,6 @@ public class RedirectionManager : MonoBehaviour {
 
     public void OnResetEnd()
     {
-        rasterization.resetState = 2;
         //print("RESET END");
         resetter.FinalizeReset();
         inReset = false;
