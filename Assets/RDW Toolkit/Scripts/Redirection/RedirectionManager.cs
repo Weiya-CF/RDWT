@@ -4,7 +4,14 @@ using System.Collections.Generic;
 
 public class RedirectionManager : MonoBehaviour {
 
-    public enum MovementController { Keyboard, AutoPilot, Tracker };
+    enum AlgorithmChoice { None, S2C, S2O, Zigzag, MPC, Q };
+    enum ResetChoice { None, TwoOneTurn };
+
+    [SerializeField]
+    AlgorithmChoice condAlgorithm;
+
+    [SerializeField]
+    ResetChoice condReset;
 
     public struct State
     {
@@ -22,8 +29,7 @@ public class RedirectionManager : MonoBehaviour {
     [Tooltip("Select if you wish to run simulation from commandline in Unity batchmode.")]
     public bool runInTestMode = false;
 
-    [Tooltip("How user movement is controlled.")]
-    public MovementController MOVEMENT_CONTROLLER = MovementController.Tracker;
+    
     
     [Tooltip("Maximum translation gain applied")]
     [Range(0, 5)]
@@ -526,5 +532,19 @@ public class RedirectionManager : MonoBehaviour {
         resetTrigger.Initialize();
         if (this.resetter != null)
             this.resetter.Initialize();
+    }
+
+    public void ResetEpisode()
+    {
+        this.trailDrawer.OnDisable();
+
+        // Resetting User and World Positions and Orientations
+        this.transform.position = Vector3.zero;
+        this.transform.rotation = Quaternion.identity;
+
+        this.headTransform.position = Utilities.UnFlatten(Vector2.zero, this.headTransform.position.y);
+        this.headTransform.rotation = Quaternion.LookRotation(Utilities.UnFlatten(Vector2.zero), Vector3.up);
+
+        this.trailDrawer.OnEnable();
     }
 }

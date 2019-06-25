@@ -11,6 +11,10 @@ public class VirtualPathGenerator
     public enum DistributionType { Normal, Uniform };
     public enum AlternationType { None, Random, Constant };
 
+    float zigLength = 5.5f;
+    float zagAngle = 140;
+    int zigzagWaypointCount = 6;
+
     public struct SamplingDistribution
     {
         public DistributionType distributionType;
@@ -115,4 +119,43 @@ public class VirtualPathGenerator
         return Utilities.RotateVector(Vector2.up, angle).normalized; // Over-protective with the normalizing
     }
 
+    VirtualPathGenerator.PathSeed getPathSeedOfficeBuilding()
+    {
+        VirtualPathGenerator.SamplingDistribution distanceSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, 2, 8);
+        VirtualPathGenerator.SamplingDistribution angleSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, 90, 90, VirtualPathGenerator.AlternationType.Random);
+        int waypointCount = 200;
+        return new VirtualPathGenerator.PathSeed(distanceSamplingDistribution, angleSamplingDistribution, waypointCount);
+    }
+
+    VirtualPathGenerator.PathSeed getPathSeedZigzag()
+    {
+        VirtualPathGenerator.SamplingDistribution distanceSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, zigLength, zigLength);
+        VirtualPathGenerator.SamplingDistribution angleSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, zagAngle, zagAngle, VirtualPathGenerator.AlternationType.Constant);
+        int waypointCount = zigzagWaypointCount;
+        return new VirtualPathGenerator.PathSeed(distanceSamplingDistribution, angleSamplingDistribution, waypointCount);
+    }
+
+    VirtualPathGenerator.PathSeed getPathSeedExplorationSmall()
+    {
+        VirtualPathGenerator.SamplingDistribution distanceSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, 2, 6);
+        VirtualPathGenerator.SamplingDistribution angleSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, -180, 180);
+        int waypointCount = 250;
+        return new VirtualPathGenerator.PathSeed(distanceSamplingDistribution, angleSamplingDistribution, waypointCount);
+    }
+
+    VirtualPathGenerator.PathSeed getPathSeedExplorationLarge()
+    {
+        VirtualPathGenerator.SamplingDistribution distanceSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, 8, 12);
+        VirtualPathGenerator.SamplingDistribution angleSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, -180, 180);
+        int waypointCount = 100;
+        return new VirtualPathGenerator.PathSeed(distanceSamplingDistribution, angleSamplingDistribution, waypointCount);
+    }
+
+    VirtualPathGenerator.PathSeed getPathSeedLongCorridor()
+    {
+        VirtualPathGenerator.SamplingDistribution distanceSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, 100, 100);
+        VirtualPathGenerator.SamplingDistribution angleSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, 0, 0);
+        int waypointCount = 1;
+        return new VirtualPathGenerator.PathSeed(distanceSamplingDistribution, angleSamplingDistribution, waypointCount);
+    }
 }

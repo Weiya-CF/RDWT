@@ -14,7 +14,6 @@ public class GridEnvironment : Environment
 
     public void Start()
     {
-        maxSteps = 100;
         waitTime = 0.001f;
         BeginNewGame();
         Debug.Log("The Environment " + this.envParameters.env_name + " has been created");
@@ -35,7 +34,7 @@ public class GridEnvironment : Environment
     }
 
     /// <summary>
-    /// Established the walking environment
+    /// Establish the walking environment
     /// </summary>
     public override void SetUp()
     {
@@ -64,7 +63,7 @@ public class GridEnvironment : Environment
     private void Update()
     {
         //waitTime = 1.0f - GameObject.Find("Slider").GetComponent<Slider>().value;
-        waitTime = 2f;
+        waitTime = 1f;
         RunMdp();
     }
 
@@ -127,9 +126,11 @@ public class GridEnvironment : Environment
 
         episodeReward = 0;
 
-        // Set a random position for the user
-        float maxrange = rm.resetter.maxX;
-        rm.headTransform.position = new Vector3(Random.Range(-maxrange, maxrange), 0, Random.Range(-maxrange, maxrange));
+        // user and trail drawing
+        this.rm.ResetEpisode();
+
+        // reset the internal state of agent
+        this.agent.ResetEpisode();
        
         EndReset();
 

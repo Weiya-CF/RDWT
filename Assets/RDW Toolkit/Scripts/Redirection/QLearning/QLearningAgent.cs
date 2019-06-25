@@ -22,7 +22,7 @@ public class QLearningAgent : Agent
     public override void SendParameters(EnvironmentParameters env)
     {
         q_table = new float[env.state_size][];
-        action = 0;
+        
         for (int i = 0; i < env.state_size; i++)
         {
             q_table[i] = new float[env.action_size];
@@ -33,6 +33,11 @@ public class QLearningAgent : Agent
         }
 
         action_size = env.action_size;
+    }
+
+    public void ResetEpisode()
+    {
+        action = -1;
     }
 
     /// <summary>

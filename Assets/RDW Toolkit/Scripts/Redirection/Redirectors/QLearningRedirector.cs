@@ -16,7 +16,7 @@ public class QLearningRedirector : Redirector
     {
         Debug.Log("The QLearning Redirector has been created");
         grid_env = GameObject.Find("GridEnv").GetComponent(typeof(GridEnvironment)) as GridEnvironment;
-        gains = new List<float> { 0, -20, -40, 20, 40 };
+        gains = new List<float> { 0, -6f * Mathf.Deg2Rad, -15f * Mathf.Deg2Rad, 6f * Mathf.Deg2Rad, 15f * Mathf.Deg2Rad };
     }
 
     // Update is called once per frame

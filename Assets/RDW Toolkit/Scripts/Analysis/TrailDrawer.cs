@@ -56,12 +56,12 @@ public class TrailDrawer : MonoBehaviour {
         }
     }
 
-    void OnEnable()
+    public void OnEnable()
     {
         BeginTrailDrawing();
     }
 
-    void OnDisable()
+    public void OnDisable()
     {
         StopTrailDrawing();
         if (drawRealTrail)

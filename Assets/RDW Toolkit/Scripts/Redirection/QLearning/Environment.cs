@@ -24,8 +24,10 @@ public abstract class Environment : MonoBehaviour
     public bool begun;
     public bool acceptingSteps;
 
+    [HideInInspector]
     public Agent agent;
-    public int comPort;
+
+    //public int comPort;
     public int frameToSkip;
     public int framesSinceAction;
     public string currentPythonCommand;

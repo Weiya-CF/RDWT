@@ -9,6 +9,8 @@ public class Agent : MonoBehaviour
 
     }
 
+    public virtual void ResetEpisode() { }
+
     public virtual string Receive()
     {
         return "";
