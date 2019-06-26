@@ -8,7 +8,7 @@ using Redirection;
 public class StatisticsLogger : MonoBehaviour {
 
     [HideInInspector]
-    public RedirectionManager redirectionManager;
+    public SimulationManager simulationManager;
 
     public bool logSampleVariables = false;
     public bool appendToFile = false;
@@ -103,12 +103,12 @@ public class StatisticsLogger : MonoBehaviour {
         resetCount = 0;
         sumOfVirtualDistanceTravelled = 0;
         sumOfRealDistanceTravelled = 0;
-        experimentBeginningTime = redirectionManager.GetTime();
+        experimentBeginningTime = simulationManager.GetTime();
 
         virtualDistancesTravelledBetweenResets = new List<float>();
         virtualDistanceTravelledSinceLastReset = 0;
         timeElapsedBetweenResets = new List<float>();
-        timeOfLastReset = redirectionManager.GetTime(); // Technically a reset didn't happen here but we want to remember this time point
+        timeOfLastReset = simulationManager.GetTime(); // Technically a reset didn't happen here but we want to remember this time point
 
         userRealPositionSamples = new List<Vector2>();
         userRealPositionSamplesBuffer = new List<Vector2>();
@@ -134,7 +134,7 @@ public class StatisticsLogger : MonoBehaviour {
         distanceToCenterSamplesBuffer = new List<float>();
         samplingIntervals = new List<float>();
 
-        lastSamplingTime = redirectionManager.GetTime();
+        lastSamplingTime = simulationManager.GetTime();
     }
 
 
@@ -147,11 +147,11 @@ public class StatisticsLogger : MonoBehaviour {
         {
             // Average and Log Sampled Values If It's Time To
             UpdateFrameBasedValues();
-            if (redirectionManager.GetTime() - lastSamplingTime > (1 / samplingFrequency))
+            if (simulationManager.GetTime() - lastSamplingTime > (1 / samplingFrequency))
             {
                 GenerateSamplesFromBufferValuesAndClearBuffers();
-                samplingIntervals.Add(redirectionManager.GetTime() - lastSamplingTime);
-                lastSamplingTime = redirectionManager.GetTime();
+                samplingIntervals.Add(simulationManager.GetTime() - lastSamplingTime);
+                lastSamplingTime = simulationManager.GetTime();
             }
         }
     }
@@ -295,9 +295,9 @@ public class StatisticsLogger : MonoBehaviour {
             // But we'll artificially use this current delta time instead!
             //translationGainSamplesBuffer.Add(g_t * redirectionManager.userMovementManager.lastDeltaTime);
             //print("Translation Gain: " + g_t + "\tInterval: " + redirectionManager.getDeltaTime());
-            translationGainSamplesBuffer.Add(g_t * redirectionManager.GetDeltaTime());
+            translationGainSamplesBuffer.Add(g_t * simulationManager.GetDeltaTime());
             //injectedTranslationSamplesBuffer.Add(translationApplied.magnitude * redirectionManager.userMovementManager.lastDeltaTime);
-            injectedTranslationSamplesBuffer.Add(translationApplied.magnitude * redirectionManager.GetDeltaTime());
+            injectedTranslationSamplesBuffer.Add(translationApplied.magnitude * simulationManager.GetDeltaTime());
         }
     }
 
@@ -344,11 +344,11 @@ public class StatisticsLogger : MonoBehaviour {
             // The proper way is using redirectionManager.userMovementManager.lastDeltaTime which is the true time the gain was applied for, but this causes problems when we have a long frame and then a short frame
             // But we'll artificially use this current delta time instead!
             //rotationGainSamplesBuffer.Add(g_r * redirectionManager.userMovementManager.lastDeltaTime);
-            rotationGainSamplesBuffer.Add(g_r * redirectionManager.GetDeltaTime());
+            rotationGainSamplesBuffer.Add(g_r * simulationManager.GetDeltaTime());
             //injectedRotationFromRotationGainSamplesBuffer.Add(Mathf.Abs(rotationApplied) * redirectionManager.userMovementManager.lastDeltaTime);
-            injectedRotationFromRotationGainSamplesBuffer.Add(Mathf.Abs(rotationApplied) * redirectionManager.GetDeltaTime());
+            injectedRotationFromRotationGainSamplesBuffer.Add(Mathf.Abs(rotationApplied) * simulationManager.GetDeltaTime());
             //injectedRotationSamplesBuffer.Add(Mathf.Abs(rotationApplied) * redirectionManager.userMovementManager.lastDeltaTime);
-            injectedRotationSamplesBuffer.Add(Mathf.Abs(rotationApplied) * redirectionManager.GetDeltaTime());
+            injectedRotationSamplesBuffer.Add(Mathf.Abs(rotationApplied) * simulationManager.GetDeltaTime());
         }
     }
 
@@ -395,11 +395,11 @@ public class StatisticsLogger : MonoBehaviour {
             //// The proper way is using redirectionManager.userMovementManager.lastDeltaTime which is the true time the gain was applied for, but this causes problems when we have a long frame and then a short frame
             // But we'll artificially use this current delta time instead!
             //curvatureGainSamplesBuffer.Add(g_c * redirectionManager.userMovementManager.lastDeltaTime);
-            curvatureGainSamplesBuffer.Add(g_c * redirectionManager.GetDeltaTime());
+            curvatureGainSamplesBuffer.Add(g_c * simulationManager.GetDeltaTime());
             //injectedRotationFromCurvatureGainSamplesBuffer.Add(Mathf.Abs(rotationApplied) * redirectionManager.userMovementManager.lastDeltaTime);
-            injectedRotationFromCurvatureGainSamplesBuffer.Add(Mathf.Abs(rotationApplied) * redirectionManager.GetDeltaTime());
+            injectedRotationFromCurvatureGainSamplesBuffer.Add(Mathf.Abs(rotationApplied) * simulationManager.GetDeltaTime());
             //injectedRotationSamplesBuffer.Add(Mathf.Abs(rotationApplied) * redirectionManager.userMovementManager.lastDeltaTime);
-            injectedRotationSamplesBuffer.Add(Mathf.Abs(rotationApplied) * redirectionManager.GetDeltaTime());
+            injectedRotationSamplesBuffer.Add(Mathf.Abs(rotationApplied) * simulationManager.GetDeltaTime());
         }
     }
 
@@ -410,8 +410,8 @@ public class StatisticsLogger : MonoBehaviour {
             resetCount++;
             virtualDistancesTravelledBetweenResets.Add(virtualDistanceTravelledSinceLastReset);
             virtualDistanceTravelledSinceLastReset = 0;
-            timeElapsedBetweenResets.Add(redirectionManager.GetTime() - timeOfLastReset);
-            timeOfLastReset = redirectionManager.GetTime(); // Technically a reset didn't happen here but we want to remember this time point
+            timeElapsedBetweenResets.Add(simulationManager.GetTime() - timeOfLastReset);
+            timeOfLastReset = simulationManager.GetTime(); // Technically a reset didn't happen here but we want to remember this time point
         }
     }
 
@@ -427,13 +427,13 @@ public class StatisticsLogger : MonoBehaviour {
         //{
         
         // Now we are letting the developer determine the movement manually in update, and we pull the info from redirector
-        Event_User_Rotated(redirectionManager.deltaDir);
-        Event_User_Translated(Utilities.FlattenedPos2D(redirectionManager.deltaPos));
+        Event_User_Rotated(simulationManager.redirectionManager.deltaDir);
+        Event_User_Translated(Utilities.FlattenedPos2D(simulationManager.redirectionManager.deltaPos));
         
-        userRealPositionSamplesBuffer.Add(redirectionManager.GetDeltaTime() * Utilities.FlattenedPos2D(redirectionManager.currState.posReal));
-        userVirtualPositionSamplesBuffer.Add(redirectionManager.GetDeltaTime() * Utilities.FlattenedPos2D(redirectionManager.currState.pos));
-        distanceToNearestBoundarySamplesBuffer.Add(redirectionManager.GetDeltaTime() * redirectionManager.resetter.getDistanceToNearestBoundary());
-        distanceToCenterSamplesBuffer.Add(redirectionManager.GetDeltaTime() * redirectionManager.currState.posReal.magnitude);
+        userRealPositionSamplesBuffer.Add(simulationManager.GetDeltaTime() * Utilities.FlattenedPos2D(simulationManager.redirectionManager.currState.posReal));
+        userVirtualPositionSamplesBuffer.Add(simulationManager.GetDeltaTime() * Utilities.FlattenedPos2D(simulationManager.redirectionManager.currState.pos));
+        distanceToNearestBoundarySamplesBuffer.Add(simulationManager.GetDeltaTime() * simulationManager.redirectionManager.resetter.getDistanceToNearestBoundary());
+        distanceToCenterSamplesBuffer.Add(simulationManager.GetDeltaTime() * simulationManager.redirectionManager.currState.posReal.magnitude);
         //}
     }
 
@@ -465,7 +465,7 @@ public class StatisticsLogger : MonoBehaviour {
         if (verbose)
         {
             print("sampleValue: " + sampleValue);
-            print("samplingInterval: " + (redirectionManager.GetTime() - lastSamplingTime));
+            print("samplingInterval: " + (simulationManager.GetTime() - lastSamplingTime));
         }
         buffer.Clear();
     }
@@ -485,8 +485,8 @@ public class StatisticsLogger : MonoBehaviour {
     void Event_Experiment_Ended()
     {
         virtualDistancesTravelledBetweenResets.Add(virtualDistanceTravelledSinceLastReset);
-        timeElapsedBetweenResets.Add(redirectionManager.GetTime() - timeOfLastReset);
-        experimentEndingTime = redirectionManager.GetTime();
+        timeElapsedBetweenResets.Add(simulationManager.GetTime() - timeOfLastReset);
+        experimentEndingTime = simulationManager.GetTime();
     }
 
     // This function introduces lots of floating point error and I'd rather see clean values than noisy accurate weighted measurements
@@ -563,7 +563,7 @@ public class StatisticsLogger : MonoBehaviour {
     // Normalizing by dividing by diameter
     float GetTrackingAreaNormalizedValue(float distance)
     {
-        return distance / redirectionManager.resetter.getTrackingAreaHalfDiameter();
+        return distance / simulationManager.redirectionManager.resetter.getTrackingAreaHalfDiameter();
     }
 
     List<float> GetTrackingAreaNormalizedList(List<float> distances)
@@ -571,7 +571,7 @@ public class StatisticsLogger : MonoBehaviour {
         List<float> retVal = new List<float>(distances);
         for (int i = 0; i < distances.Count; i++)
         {
-            retVal[i] = retVal[i] / redirectionManager.resetter.getTrackingAreaHalfDiameter();
+            retVal[i] = retVal[i] / simulationManager.redirectionManager.resetter.getTrackingAreaHalfDiameter();
         }
         return retVal;
     }
@@ -654,7 +654,7 @@ public class StatisticsLogger : MonoBehaviour {
             }
             csvWriter.WriteLine();
             // Write Values
-            csvWriter.Write(redirectionManager.startTimeOfProgram +";");
+            csvWriter.Write(simulationManager.startTimeOfProgram +";");
             foreach (Dictionary<string, string> experimentResult in experimentResults)
             {
                 foreach (string value in experimentResult.Values)

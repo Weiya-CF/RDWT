@@ -1,202 +1,284 @@
 ﻿using UnityEngine;
 using System.Collections.Generic;
-
+using Redirection;
+using System;
 
 public class SimulationManager : MonoBehaviour {
 
     [HideInInspector]
     public RedirectionManager redirectionManager;
-
     [HideInInspector]
     public MotionManager motionManager;
+    [HideInInspector]
+    public EnvManager envManager;
 
-    // Experiment Variables
-    System.Type redirector = null;
-    System.Type resetter = null;
-    
     [SerializeField]
     bool runInSimulationMode = false;
+    [SerializeField]
+    public bool averageTrialResults = false;
 
-    
     [SerializeField]
-    bool runAtFullSpeed = false;
-    [SerializeField]
-    public bool onlyRandomizeForward = true;
-    [SerializeField]
-    bool averageTrialResults = false;
-    [SerializeField]
-    public float DISTANCE_TO_WAYPOINT_THRESHOLD = 0.3f; // Distance requirement to trigger waypoint
-
-    bool takeScreenshot = false;
-    
+    public bool runAtFullSpeed = false;
 
     [HideInInspector]
-    public List<Vector2> waypoints;
-    [HideInInspector]
-    public int waypointIterator = 0;
+    public bool takeScreenshot = false;
+
+    [Tooltip("Use simulated framerate in auto-pilot mode")]
+    public bool useManualTime = false;
+
+    [Tooltip("Target simulated framerate in auto-pilot mode")]
+    public float targetFPS = 60;
+
     [HideInInspector]
     public bool userIsWalking = false;
 
-	
+    [HideInInspector]
+    public SnapshotGenerator snapshotGenerator;
+    [HideInInspector]
+    public StatisticsLogger statisticsLogger;
+
+    [HideInInspector]
+    public TrailDrawer trailDrawer;
+    [HideInInspector]
+    public Transform simulatedHead;
+    [HideInInspector]
+    public HeadFollower bodyHeadFollower;
+
+    
+    [HideInInspector]
+    public string startTimeOfProgram;
+
+    private float simulatedTime = 0;
+
+
+    private GridEnvironment rasterization;
+
+    private void Awake()
+    {
+        // Here we do initialize all managers add pass their reference to their sub-component
+
+        startTimeOfProgram = System.DateTime.Now.ToString("yyyy MM dd HH:mm:ss");
+
+        GetRedirectionManager();
+        GetMotionManager();
+        GetEnvManager();
+
+        GetSimulatedHead();
+        GetBodyHeadFollower();
+        GetTrailDrawer();
+        GetSnapshotGenerator();
+        GetStatisticsLogger();
+
+        SetReferenceForRedirectionManager();
+        SetReferenceForMotionManager();
+        SetReferenceForEnvManager();
+        SetReferenceForTrailDrawer();
+        SetReferenceForStatisticsLogger();
+        SetReferenceForBodyHeadFollower();
+        
+        GetRasterization();
+
+        // Redirection Manager
+        this.redirectionManager.GetRedirector();
+        this.redirectionManager.GetResetter();
+        this.redirectionManager.GetResetTrigger();
+        this.redirectionManager.GetBody();
+        this.redirectionManager.SetReferenceForRedirector();
+        this.redirectionManager.SetReferenceForResetter();
+        this.redirectionManager.SetReferenceForResetTrigger();
+        this.redirectionManager.SetBodyReferenceForResetTrigger();
+
+        // Motion Manager
+        this.motionManager.GetSimulatedWalker();
+        this.motionManager.GetKeyboardController();
+        this.motionManager.SetReferenceForSimulatedWalker();
+        this.motionManager.SetReferenceForKeyboardController();
+
+        // Env Manager
+        this.envManager.GetTrackedSpace();
+
+    }
+
+    private void GetMotionManager()
+    {
+        this.motionManager = this.gameObject.GetComponent<MotionManager>();
+    }
+
+    private void GetEnvManager()
+    {
+        this.envManager = this.gameObject.GetComponent<EnvManager>();
+    }
+
     // Use this for initialization
-	void Start () {
-	
-	}
-	
-	// Update is called once per frame
+    void Start () {
+        simulatedTime = 0;
+        this.redirectionManager.Initialize();
+
+        // Motion
+        this.redirectionManager.runInTestMode = runInSimulationMode;
+        userIsWalking = !(motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot);
+        if (motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
+            motionManager.DISTANCE_TO_WAYPOINT_THRESHOLD = 0.05f;// 0.0001f;
+
+        if (motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.Tracker)
+            return;
+        else
+        {
+            motionManager.InstantiateSimulationPrefab();
+            redirectionManager.headTransform = simulatedHead;
+        }
+
+        // Setting Random Seed
+        UnityEngine.Random.InitState(VirtualPathGenerator.RANDOM_SEED);
+
+        // Make sure VSync doesn't slow us down
+
+        //Debug.Log("Application.targetFrameRate: " + Application.targetFrameRate);
+
+        if (runAtFullSpeed && this.enabled)
+        {
+            //redirectionManager.topViewCamera.enabled = false;
+            //drawVirtualPath = false;
+            QualitySettings.vSyncCount = 0;
+        }
+
+    }
+
+    // Update is called once per frame
     void Update()
     {
         
 
     }
-    void OnGUI()
+
+    // LateUpdate is called after all Update functions have been called
+    // LateUpdate is called every frame, if the Behaviour is enabled.
+    void LateUpdate()
     {
-        if (experimentComplete)
-            GUI.Box(new Rect((int)(0.5f * Screen.width) - 75, (int)(0.5f * Screen.height) - 14, 150, 28), "Experiment Complete");
+        simulatedTime += 1.0f / targetFPS;
+
+        //if (MOVEMENT_CONTROLLER == MovementController.AutoPilot)
+        //    simulatedWalker.WalkUpdate();
+
+        // Redirection Part
+        this.redirectionManager.Run();
     }
 
-
-    Dictionary<string, string> getExperimentDescriptor(ExperimentSetup setup)
+    void SetReferenceForRedirectionManager()
     {
-        Dictionary<string, string> descriptor = new Dictionary<string, string>();
-
-        descriptor["redirector"] = setup.redirector.ToString();
-        descriptor["resetter"] = setup.resetter == null ? "no_reset" : setup.resetter.ToString();
-        descriptor["tracking_size_x"] = setup.trackingSizeShape.x.ToString();
-        descriptor["tracking_size_z"] = setup.trackingSizeShape.z.ToString();
-
-        return descriptor;
-    }
-
-    void printExperimentDescriptor(Dictionary<string, string> experimentDescriptor)
-    {
-        foreach (KeyValuePair<string, string> pair in experimentDescriptor)
+        if (redirectionManager != null)
         {
-            Debug.Log(pair.Key + ": " + pair.Value);
+            redirectionManager.simulationManager = this;
         }
     }
 
-    string experimentDescriptorToString(Dictionary<string, string> experimentDescriptor)
+    void SetReferenceForMotionManager()
     {
-        string retVal = "";
-        int i = 0;
-        foreach (KeyValuePair<string, string> pair in experimentDescriptor)
+        if (motionManager != null)
         {
-            retVal += pair.Value;
-            if (i != experimentDescriptor.Count - 1)
-                retVal += "+";
-            i++;
-        }
-        return retVal;
-    }
-
-
-    public List<Dictionary<string, string>> mergeTrialSummaryStatistics(List<Dictionary<string, string>> experimentResults)
-    {
-        List<Dictionary<string, string>> mergedResults = new List<Dictionary<string, string>>();
-        Dictionary<string, string> mergedResult = null;
-        float tempValue = 0;
-        Vector2 tempVectorValue = Vector2.zero;
-        for (int i = 0; i < experimentResults.Count; i++)
-        {
-            if (i % trialsForCurrentExperiment == 0)
-            {
-                mergedResult = new Dictionary<string, string>(experimentResults[i]);
-            }
-            else
-            {
-                foreach (KeyValuePair<string, string> pair in experimentResults[i])
-                {
-                    if (float.TryParse(pair.Value, out tempValue))
-                    {
-                        //Debug.Log("Averaged Float Values: " + pair.Value + ", " + mergedResult[pair.Key]);
-                        mergedResult[pair.Key] = (i % trialsForCurrentExperiment == trialsForCurrentExperiment - 1) ? ((float.Parse(mergedResult[pair.Key]) + tempValue) / ((float)trialsForCurrentExperiment)).ToString() : (float.Parse(mergedResult[pair.Key]) + tempValue).ToString();
-                    }
-                    else if (TryParseVector2(pair.Value, out tempVectorValue))
-                    {
-                        //Debug.Log("Averaged Vector Values: " + pair.Value + ", " + mergedResult[pair.Key]);
-                        mergedResult[pair.Key] = (i % trialsForCurrentExperiment == trialsForCurrentExperiment - 1) ? ((ParseVector2(mergedResult[pair.Key]) + tempVectorValue) / ((float)trialsForCurrentExperiment)).ToString() : (ParseVector2(mergedResult[pair.Key]) + tempVectorValue).ToString();
-                    }
-                }
-            }
-            if (i % trialsForCurrentExperiment == trialsForCurrentExperiment - 1)
-                mergedResults.Add(mergedResult);
-        }
-        return mergedResults;
-    }
-
-    bool TryParseVector2(string value, out Vector2 result)
-    {
-        result = Vector2.zero;
-        if (!(value[0] == '(' && value[value.Length - 1] == ')' && value.Contains(",")))
-            return false;
-        result.x = float.Parse(value.Substring(1, value.IndexOf(",") - 1));
-        result.y = float.Parse(value.Substring(value.IndexOf(",") + 2, value.IndexOf(")") - (value.IndexOf(",") + 2)));
-        return true;
-    }
-
-    Vector2 ParseVector2(string value)
-    {
-        Vector2 result = Vector2.zero;
-        result.x = float.Parse(value.Substring(1, value.IndexOf(",") - 1));
-        result.y = float.Parse(value.Substring(value.IndexOf(",") + 2, value.IndexOf(")") - (value.IndexOf(",") + 2)));
-        return result;
-    }
-
-    void determineInitialConfigurations(ref List<ExperimentSetup> experimentSetups)
-    {
-        for (int i = 0; i < experimentSetups.Count; i++)
-        {
-            ExperimentSetup setup = experimentSetups[i];
-            if (setup.initialConfiguration.isRandom)
-            {
-                if (!onlyRandomizeForward)
-                    setup.initialConfiguration.initialPosition = VirtualPathGenerator.getRandomPositionWithinBounds(-0.5f * setup.trackingSizeShape.x, 0.5f * setup.trackingSizeShape.x, -0.5f * setup.trackingSizeShape.z, 0.5f * setup.trackingSizeShape.z);
-                setup.initialConfiguration.initialForward = VirtualPathGenerator.getRandomForward();
-                //Debug.LogWarning("Random Initial Configuration for size (" + trackingSizeShape.x + ", " + trackingSizeShape.z + "): Pos" + initialConfiguration.initialPosition.ToString("f2") + " Forward" + initialConfiguration.initialForward.ToString("f2"));
-                experimentSetups[i] = setup;
-            }
-            else if (Mathf.Abs(setup.initialConfiguration.initialPosition.x) > 0.5f * setup.trackingSizeShape.x || Mathf.Abs(setup.initialConfiguration.initialPosition.y) > 0.5f * setup.trackingSizeShape.z)
-            {
-                Debug.LogError("Invalid beginning position selected. Defaulting Initial Configuration to (0, 0) and (0, 1).");
-                setup.initialConfiguration.initialPosition = Vector2.zero;
-                setup.initialConfiguration.initialForward = Vector2.up;
-                experimentSetups[i] = setup;
-            }
-            if (!setup.initialConfiguration.isRandom)
-            {
-                // Deal with diagonal hack
-                if (setup.initialConfiguration.initialForward == Vector2.one)
-                {
-                    setup.initialConfiguration.initialForward = (new Vector2(setup.trackingSizeShape.x, setup.trackingSizeShape.z)).normalized;
-                    experimentSetups[i] = setup;
-                }
-            }
+            motionManager.simulationManager = this;
         }
     }
 
-    void updateSimulatedWaypointIfRequired()
+    void SetReferenceForEnvManager()
     {
-        if ((redirectionManager.currState.pos - Utilities.FlattenedPos3D(redirectionManager.targetWaypoint.position)).magnitude < DISTANCE_TO_WAYPOINT_THRESHOLD)
+        if (envManager != null)
         {
-            redirectionManager.simulationManager.updateWaypoint();
+            envManager.simulationManager = this;
         }
     }
 
-    public void updateWaypoint()
+    void SetReferenceForTrailDrawer()
     {
-        if (!experimentInProgress)
-            return;
-        if (waypointIterator == waypoints.Count - 1)
+        if (trailDrawer != null)
         {
-            // When this is the last waypoint, stop 
-            if (experimentIterator < experimentSetups.Count)
-                endExperiment();
+            trailDrawer.simulationManager = this;
         }
+    }
+
+    void SetReferenceForStatisticsLogger()
+    {
+        if (statisticsLogger != null)
+        {
+            statisticsLogger.simulationManager = this;
+        }
+    }
+
+    void SetReferenceForBodyHeadFollower()
+    {
+        if (bodyHeadFollower != null)
+        {
+            bodyHeadFollower.simulationManager = this;
+        }
+    }
+
+    void GetRedirectionManager()
+    {
+        redirectionManager = this.gameObject.GetComponent<RedirectionManager>();
+    }
+
+    void GetTrailDrawer()
+    {
+        trailDrawer = this.gameObject.GetComponent<TrailDrawer>();
+    }
+
+
+    void GetSnapshotGenerator()
+    {
+        snapshotGenerator = this.gameObject.GetComponent<SnapshotGenerator>();
+    }
+
+    void GetStatisticsLogger()
+    {
+        statisticsLogger = this.gameObject.GetComponent<StatisticsLogger>();
+    }
+
+
+
+    void GetBodyHeadFollower()
+    {
+        bodyHeadFollower = redirectionManager.body.GetComponent<HeadFollower>();
+    }
+
+    void GetSimulatedHead()
+    {
+        simulatedHead = transform.Find("Simulated User").Find("Head");
+    }
+
+
+
+
+    public float GetDeltaTime()
+    {
+        if (useManualTime)
+            return 1.0f / targetFPS;
         else
-        {
-            waypointIterator++;
-            redirectionManager.targetWaypoint.position = new Vector3(waypoints[waypointIterator].x, redirectionManager.targetWaypoint.position.y, waypoints[waypointIterator].y);
-        }
+            return Time.deltaTime;
     }
+
+    public float GetTime()
+    {
+        if (useManualTime)
+            return simulatedTime;
+        else
+            return Time.time;
+    }
+
+    
+
+    public void ResetEpisode()
+    {
+        this.trailDrawer.OnDisable();
+
+        // Resetting User and World Positions and Orientations
+        this.transform.position = Vector3.zero;
+        this.transform.rotation = Quaternion.identity;
+
+        this.redirectionManager.headTransform.position = Utilities.UnFlatten(Vector2.zero, this.redirectionManager.headTransform.position.y);
+        this.redirectionManager.headTransform.rotation = Quaternion.LookRotation(Utilities.UnFlatten(Vector2.zero), Vector3.up);
+
+        this.trailDrawer.OnEnable();
+    }
+
+    public void GetRasterization() { rasterization = gameObject.GetComponent<GridEnvironment>(); }
 }

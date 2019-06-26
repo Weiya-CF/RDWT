@@ -31,7 +31,7 @@ public class QLearningRedirector : Redirector
         Vector3 deltaPos = redirectionManager.deltaPos;
         float deltaDir = redirectionManager.deltaDir;
 
-        if (deltaPos.magnitude / redirectionManager.GetDeltaTime() > MOVEMENT_THRESHOLD) // User is moving
+        if (deltaPos.magnitude / redirectionManager.simulationManager.GetDeltaTime() > MOVEMENT_THRESHOLD) // User is moving
         {
             if (!grid_env.done)
             {

@@ -4,9 +4,6 @@ using System.IO;
 
 public class SnapshotGenerator : MonoBehaviour {
 
-    [HideInInspector]
-    public RedirectionManager redirectionManager;
-
     public static int maxResWidthOrHeight = 8192;
     [HideInInspector]
     public int resWidth = 2048;

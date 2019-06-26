@@ -30,7 +30,7 @@ public class TrailDrawer : MonoBehaviour {
     Mesh realTrailMesh, virtualTrailMesh;
 
     [HideInInspector]
-    public RedirectionManager redirectionManager;
+    public SimulationManager simulationManager;
 
     bool isLogging;
 
@@ -134,7 +134,7 @@ public class TrailDrawer : MonoBehaviour {
 
     void UpdateTrailPoints(List<Vector3> vertices, Transform relativeTransform, Mesh mesh, float pathHeight = PATH_HEIGHT)
     {
-        Vector3 currentPoint = Utilities.FlattenedPos3D(redirectionManager.headTransform.position, pathHeight);
+        Vector3 currentPoint = Utilities.FlattenedPos3D(simulationManager.redirectionManager.headTransform.position, pathHeight);
         currentPoint = Utilities.GetRelativePosition(currentPoint, relativeTransform);
         if (vertices.Count == 0)
         {

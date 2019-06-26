@@ -2,8 +2,24 @@
 using System.Collections.Generic;
 using UnityEngine;
 
+/// <summary>
+/// Manage the tracked space and the virtual scene
+/// </summary>
 public class EnvManager : MonoBehaviour
 {
+    [HideInInspector]
+    public SimulationManager simulationManager;
+
+    [HideInInspector]
+    public Transform trackedSpace;
+
+    [HideInInspector]
+    public float roomX; // room size in x
+    [HideInInspector]
+    public float roomZ; // room size in z
+    [HideInInspector]
+    public Vector2[] roomCorners; // the 4 corners of the room
+
     // Start is called before the first frame update
     void Start()
     {
@@ -16,15 +32,32 @@ public class EnvManager : MonoBehaviour
         
     }
 
-    void InstantiateSimulationPrefab()
+
+
+    public void GetTrackedSpace()
     {
-        Transform waypoint = GameObject.CreatePrimitive(PrimitiveType.Sphere).transform;
-        Destroy(waypoint.GetComponent<SphereCollider>());
-        redirectionManager.targetWaypoint = waypoint;
-        waypoint.name = "Simulated Waypoint";
-        waypoint.position = 1.2f * Vector3.up + 1000 * Vector3.forward;
-        waypoint.localScale = 0.3f * Vector3.one;
-        waypoint.GetComponent<Renderer>().material.color = new Color(0, 1, 0);
-        waypoint.GetComponent<Renderer>().material.SetColor("_EmissionColor", new Color(0, 0.12f, 0));
+        trackedSpace = transform.Find("Tracked Space");
+        this.roomX = this.trackedSpace.localScale.x;
+        this.roomZ = this.trackedSpace.localScale.z;
+        this.roomCorners = new Vector2[4];
+        this.roomCorners[0] = new Vector2(roomX / 2, roomZ / 2);
+        this.roomCorners[1] = new Vector2(roomX / 2, -roomZ / 2);
+        this.roomCorners[2] = new Vector2(-roomX / 2, -roomZ / 2);
+        this.roomCorners[3] = new Vector2(-roomX / 2, roomZ / 2);
+    }
+
+    public void UpdateTrackedSpaceDimensions(float x, float z)
+    {
+        trackedSpace.localScale = new Vector3(x, 1, z);
+        this.roomX = trackedSpace.localScale.x;
+        this.roomZ = trackedSpace.localScale.z;
+        this.roomCorners[0] = new Vector2(roomX / 2, roomZ / 2);
+        this.roomCorners[1] = new Vector2(roomX / 2, -roomZ / 2);
+        this.roomCorners[2] = new Vector2(-roomX / 2, -roomZ / 2);
+        this.roomCorners[3] = new Vector2(-roomX / 2, roomZ / 2);
+
+        simulationManager.redirectionManager.resetTrigger.Initialize();
+        if (simulationManager.redirectionManager.resetter != null)
+            simulationManager.redirectionManager.resetter.Initialize();
     }
 }

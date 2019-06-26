@@ -69,7 +69,7 @@ public class TwoOneTurnResetter : Resetter {
     {
         // Act is if there's some dummy target a meter away from you requiring you to rotate
         //redirectionManager.simulatedWalker.RotateIfNecessary(180 - overallInjectedRotation, Vector3.forward);
-        redirectionManager.simulatedWalker.RotateInPlace();
+        simulationManager.motionManager.simulatedWalker.RotateInPlace();
         //print("overallInjectedRotation: " + overallInjectedRotation);
     }
 

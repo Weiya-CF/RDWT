@@ -5,7 +5,8 @@ using UnityEngine.UI;
 
 public class GridEnvironment : Environment
 {
-    public RedirectionManager rm;
+    public RedirectionManager redirectionManager;
+    public SimulationManager simulationManager;
 
     [Tooltip("How we divide the tracking zone into grids")]
     public int gridSize;
@@ -90,7 +91,7 @@ public class GridEnvironment : Environment
         }
 
         // A negative reward when the user is near the border of tracking zone
-        if (rm.inReset)
+        if (redirectionManager.inReset)
         {
             reward = -100;
         }
@@ -108,9 +109,11 @@ public class GridEnvironment : Environment
     public override List<float> collectState()
     {
         List<float> state = new List<float>();
-        Vector2 userpos = new Vector2(rm.currState.posReal.x + rm.trackedSpace.localScale.x * 0.5f, rm.currState.posReal.z + rm.trackedSpace.localScale.z * 0.5f);
+        Vector2 userpos = new Vector2(redirectionManager.currState.posReal.x +
+            simulationManager.envManager.trackedSpace.localScale.x * 0.5f, redirectionManager.currState.posReal.z + 
+            simulationManager.envManager.trackedSpace.localScale.z * 0.5f);
 
-        userpos = userpos / rm.trackedSpace.localScale.x * this.gridSize;
+        userpos = userpos / simulationManager.envManager.trackedSpace.localScale.x * this.gridSize;
         float point = gridSize * Mathf.FloorToInt(userpos.y) + Mathf.FloorToInt(userpos.x);
         state.Add(point);
 
@@ -127,7 +130,7 @@ public class GridEnvironment : Environment
         episodeReward = 0;
 
         // user and trail drawing
-        this.rm.ResetEpisode();
+        this.simulationManager.ResetEpisode();
 
         // reset the internal state of agent
         this.agent.ResetEpisode();

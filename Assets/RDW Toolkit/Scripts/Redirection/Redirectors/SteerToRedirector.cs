@@ -42,10 +42,10 @@ public abstract class SteerToRedirector : Redirector {
 
         rotationFromCurvatureGain = 0;
         
-        if (deltaPos.magnitude / redirectionManager.GetDeltaTime() > MOVEMENT_THRESHOLD) //User is moving
+        if (deltaPos.magnitude / simulationManager.GetDeltaTime() > MOVEMENT_THRESHOLD) //User is moving
         {
             rotationFromCurvatureGain = Mathf.Rad2Deg * (deltaPos.magnitude / redirectionManager.CURVATURE_RADIUS);
-            rotationFromCurvatureGain = Mathf.Min(rotationFromCurvatureGain, CURVATURE_GAIN_CAP_DEGREES_PER_SECOND * redirectionManager.GetDeltaTime());
+            rotationFromCurvatureGain = Mathf.Min(rotationFromCurvatureGain, CURVATURE_GAIN_CAP_DEGREES_PER_SECOND * simulationManager.GetDeltaTime());
         }
 
         //Compute desired facing vector for redirection
@@ -55,19 +55,19 @@ public abstract class SteerToRedirector : Redirector {
         //Compute proposed rotation gain
         rotationFromRotationGain = 0;
 
-        if (Mathf.Abs(deltaDir) / redirectionManager.GetDeltaTime() >= ROTATION_THRESHOLD)  //if User is rotating
+        if (Mathf.Abs(deltaDir) / simulationManager.GetDeltaTime() >= ROTATION_THRESHOLD)  //if User is rotating
         {
             
             //Determine if we need to rotate with or against the user
             if (deltaDir * desiredSteeringDirection < 0)
             {
                 //Rotating against the user
-                rotationFromRotationGain = Mathf.Min(Mathf.Abs(deltaDir * redirectionManager.MIN_ROT_GAIN), ROTATION_GAIN_CAP_DEGREES_PER_SECOND * redirectionManager.GetDeltaTime());
+                rotationFromRotationGain = Mathf.Min(Mathf.Abs(deltaDir * redirectionManager.MIN_ROT_GAIN), ROTATION_GAIN_CAP_DEGREES_PER_SECOND * simulationManager.GetDeltaTime());
             }
             else
             {
                 //Rotating with the user
-                rotationFromRotationGain = Mathf.Min(Mathf.Abs(deltaDir * redirectionManager.MAX_ROT_GAIN), ROTATION_GAIN_CAP_DEGREES_PER_SECOND * redirectionManager.GetDeltaTime());
+                rotationFromRotationGain = Mathf.Min(Mathf.Abs(deltaDir * redirectionManager.MAX_ROT_GAIN), ROTATION_GAIN_CAP_DEGREES_PER_SECOND * simulationManager.GetDeltaTime());
             }
         }
 

@@ -14,7 +14,7 @@ public class S2CRedirector : SteerToRedirector {
 
     public override void PickRedirectionTarget()
     {
-        Vector3 trackingAreaPosition = Utilities.FlattenedPos3D(redirectionManager.trackedSpace.position);
+        Vector3 trackingAreaPosition = Utilities.FlattenedPos3D(simulationManager.envManager.trackedSpace.position);
         Vector3 userToCenter = trackingAreaPosition - redirectionManager.currState.pos;
 
         //Compute steering target for S2C
@@ -34,7 +34,7 @@ public class S2CRedirector : SteerToRedirector {
         }
         else
         {
-            currentTarget = redirectionManager.trackedSpace;
+            currentTarget = simulationManager.envManager.trackedSpace;
             if (!noTmpTarget)
             {
                 GameObject.Destroy(tmpTarget);

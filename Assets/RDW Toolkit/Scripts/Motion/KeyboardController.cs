@@ -7,6 +7,8 @@ public class KeyboardController : MonoBehaviour {
 
     [HideInInspector]
     public RedirectionManager redirectionManager;
+    [HideInInspector]
+    public MotionManager motionManager;
 
     /// <summary>
     /// Auto-Adjust automatically counters curvature as human naturally would.
@@ -38,7 +40,7 @@ public class KeyboardController : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-        if (!redirectionManager.simulationManager.userIsWalking || redirectionManager.MOVEMENT_CONTROLLER != RedirectionManager.MovementController.Keyboard)
+        if (!redirectionManager.simulationManager.userIsWalking || motionManager.MOVEMENT_CONTROLLER != MotionManager.MovementController.Keyboard)
             return;
 
         Vector3 userForward = Utilities.FlattenedDir3D(this.transform.forward);

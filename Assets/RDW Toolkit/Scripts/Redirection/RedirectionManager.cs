@@ -13,23 +13,6 @@ public class RedirectionManager : MonoBehaviour {
     [SerializeField]
     ResetChoice condReset;
 
-    public struct State
-    {
-        public Vector3 pos, posReal; // user's virtual and real position
-        public Vector3 dir, dirReal; // user's virtual and real direction
-
-        private void Reset()
-        {
-            pos = new Vector3(0, 0, 0); posReal = new Vector3(0, 0, 0);
-            dir = new Vector3(0, 0, 0); dirReal = new Vector3(0, 0, 0);
-        }
-
-    }; // the state of the environment
-
-    [Tooltip("Select if you wish to run simulation from commandline in Unity batchmode.")]
-    public bool runInTestMode = false;
-
-    
     
     [Tooltip("Maximum translation gain applied")]
     [Range(0, 5)]
@@ -50,22 +33,8 @@ public class RedirectionManager : MonoBehaviour {
     [Tooltip("Radius applied by curvature gain")]
     [Range(1, 23)]
     public float CURVATURE_RADIUS = 7.5F;
-
     [Tooltip("The game object that is being physically tracked (probably user's head)")]
     public Transform headTransform;
-
-    [Tooltip("Use simulated framerate in auto-pilot mode")]
-    public bool useManualTime = false;
-
-    [Tooltip("Target simulated framerate in auto-pilot mode")]
-    public float targetFPS = 60;
-
-    [Tooltip("Tangent speed in auto-pilot mode")]
-    public float speedReal;
-
-    [Tooltip("Angular speed in auto-pilot mode")]
-    public float angularSpeedReal;
-
 
     [HideInInspector]
     public State currState;
@@ -81,10 +50,6 @@ public class RedirectionManager : MonoBehaviour {
 
     [HideInInspector]
     public Transform body;
-    [HideInInspector]
-    public Transform trackedSpace;
-    [HideInInspector]
-    public Transform simulatedHead;
 
     [HideInInspector]
     public Redirector redirector;
@@ -92,98 +57,48 @@ public class RedirectionManager : MonoBehaviour {
     public Resetter resetter;
     [HideInInspector]
     public ResetTrigger resetTrigger;
-    [HideInInspector]
-    public TrailDrawer trailDrawer;
+
     [HideInInspector]
     public SimulationManager simulationManager;
     [HideInInspector]
-    public SimulatedWalker simulatedWalker;
+    public System.Type redirectorType;
     [HideInInspector]
-    public KeyboardController keyboardController;
-    [HideInInspector]
-    public SnapshotGenerator snapshotGenerator;
-    [HideInInspector]
-    public StatisticsLogger statisticsLogger;
-    [HideInInspector]
-    public HeadFollower bodyHeadFollower;
- 
-    [HideInInspector]
-    public Transform targetWaypoint;
-
-    [HideInInspector]
-    public float roomX; // room size in x
-    [HideInInspector]
-    public float roomZ; // room size in z
-    [HideInInspector]
-    public Vector2[] roomCorners; // the 4 corners of the room
+    public System.Type resetterType;
 
     [HideInInspector]
     public bool inReset = false;
 
-    [HideInInspector]
-    public string startTimeOfProgram;
+    public bool runInTestMode;
 
-    private float simulatedTime = 0;
+    public struct State
+    {
+        public Vector3 pos, posReal; // user's virtual and real position
+        public Vector3 dir, dirReal; // user's virtual and real direction
 
-    private GridEnvironment rasterization;
+        private void Reset()
+        {
+            pos = new Vector3(0, 0, 0); posReal = new Vector3(0, 0, 0);
+            dir = new Vector3(0, 0, 0); dirReal = new Vector3(0, 0, 0);
+        }
+
+    }; // the state of the environment
 
     void Awake()
     {
-        GetRasterization();
-
-        startTimeOfProgram = System.DateTime.Now.ToString("yyyy MM dd HH:mm:ss");
-
         GetBody();
-        GetTrackedSpace();
-        GetSimulatedHead();
-
-        GetSimulationManager();
-        SetReferenceForSimulationManager();
-        simulationManager.Initialize();
-
         GetRedirector();
         GetResetter();
         GetResetTrigger();
-        GetTrailDrawer();
-        
-        GetSimulatedWalker();
-        GetKeyboardController();
-        GetSnapshotGenerator();
-        GetStatisticsLogger();
-        GetBodyHeadFollower();
+
         SetReferenceForRedirector();
         SetReferenceForResetter();
         SetReferenceForResetTrigger();
         SetBodyReferenceForResetTrigger();
-        SetReferenceForTrailDrawer();
-        
-        SetReferenceForSimulatedWalker();
-        SetReferenceForKeyboardController();
-        SetReferenceForSnapshotGenerator();
-        SetReferenceForStatisticsLogger();
-        SetReferenceForBodyHeadFollower();
-
-        // The rule is to have RedirectionManager call all "Awake"-like functions 
-        // that rely on RedirectionManager as an "Initialize" call.
-        resetTrigger.Initialize();
-        // Resetter needs ResetTrigger to be initialized before initializing itself
-        if (resetter != null)
-            resetter.Initialize();
-
-        if (runInTestMode)
-        {
-            MOVEMENT_CONTROLLER = MovementController.AutoPilot;
-        }
-        if (MOVEMENT_CONTROLLER != MovementController.Tracker)
-        {
-            headTransform = simulatedHead;
-        }
-
     }
 
 	// Use this for initialization
 	void Start () {
-        simulatedTime = 0;
+
         UpdateCurrentUserState();
         UpdatePreviousUserState();
 	}
@@ -193,15 +108,137 @@ public class RedirectionManager : MonoBehaviour {
 
 	}
 
-    // LateUpdate is called every frame, if the Behaviour is enabled.
-    // LateUpdate is called after all Update functions have been called
-    void LateUpdate()
+    public void Initialize()
     {
-        simulatedTime += 1.0f / targetFPS;
+        if (this.runInTestMode)
+        {
+            switch (condAlgorithm)
+            {
+                case AlgorithmChoice.None:
+                    redirectorType = typeof(NullRedirector);
+                    break;
+                case AlgorithmChoice.S2C:
+                    redirectorType = typeof(S2CRedirector);
+                    break;
+                case AlgorithmChoice.S2O:
+                    redirectorType = typeof(S2ORedirector);
+                    break;
+                case AlgorithmChoice.Zigzag:
+                    redirectorType = typeof(ZigZagRedirector);
+                    break;
+                case AlgorithmChoice.MPC:
+                    redirectorType = typeof(MPCRedirector);
+                    break;
+                case AlgorithmChoice.Q:
+                    redirectorType = typeof(QLearningRedirector);
+                    break;
+            }
+            switch (condReset)
+            {
+                case ResetChoice.None:
+                    resetterType = typeof(NullResetter);
+                    break;
+                case ResetChoice.TwoOneTurn:
+                    resetterType = typeof(TwoOneTurnResetter);
+                    break;
+            }
+        }
 
-        //if (MOVEMENT_CONTROLLER == MovementController.AutoPilot)
-        //    simulatedWalker.WalkUpdate();
+            resetTrigger.Initialize();
+        // Resetter needs ResetTrigger to be initialized before initializing itself
+        if (resetter != null)
+            resetter.Initialize();
+    }
 
+    void UpdateBodyPose()
+    {
+        body.position = Utilities.FlattenedPos3D(this.headTransform.position);
+        body.rotation = Quaternion.LookRotation(Utilities.FlattenedDir3D(this.headTransform.forward), Vector3.up);
+    }
+
+    public void SetReferenceForRedirector()
+    {
+        if (redirector != null)
+        {
+            redirector.redirectionManager = this;
+            redirector.simulationManager = this.simulationManager;
+        }
+    }
+
+    public void SetReferenceForResetter()
+    {
+        if (resetter != null)
+        {
+            resetter.redirectionManager = this;
+            resetter.simulationManager = this.simulationManager;
+        } 
+    }
+
+    public void SetReferenceForResetTrigger()
+    {
+        if (resetTrigger != null)
+            resetTrigger.redirectionManager = this;
+    }
+
+    public void SetBodyReferenceForResetTrigger()
+    {
+        if (resetTrigger != null && body != null)
+        {
+            // NOTE: This requires that getBody gets called before this
+            resetTrigger.bodyCollider = body.GetComponentInChildren<CapsuleCollider>();
+        }
+    }
+
+    public void GetRedirector()
+    {
+        redirector = this.gameObject.GetComponent<Redirector>();
+        if (redirector == null)
+            this.gameObject.AddComponent<NullRedirector>();
+        redirector = this.gameObject.GetComponent<Redirector>();
+    }
+
+    public void GetResetter()
+    {
+        resetter = this.gameObject.GetComponent<Resetter>();
+        if (resetter == null)
+            this.gameObject.AddComponent<NullResetter>();
+        resetter = this.gameObject.GetComponent<Resetter>();
+    }
+
+    public void GetResetTrigger()
+    {
+        resetTrigger = this.gameObject.GetComponentInChildren<ResetTrigger>();
+    }
+
+    public void GetBody()
+    {
+        body = transform.Find("Body");
+    }
+ 
+    public void UpdateCurrentUserState()
+    {
+        currState.pos = Utilities.FlattenedPos3D(this.headTransform.position);
+        currState.posReal = Utilities.GetRelativePosition(currState.pos, this.transform);
+        currState.dir = Utilities.FlattenedDir3D(this.headTransform.forward);
+        currState.dirReal = Utilities.FlattenedDir3D(Utilities.GetRelativeDirection(currState.dir, this.transform));
+    }
+
+    public void UpdatePreviousUserState()
+    {
+        prevState.pos = Utilities.FlattenedPos3D(this.headTransform.position);
+        prevState.posReal = Utilities.GetRelativePosition(prevState.pos, this.transform);
+        prevState.dir = Utilities.FlattenedDir3D(this.headTransform.forward);
+        prevState.dirReal = Utilities.FlattenedDir3D(Utilities.GetRelativeDirection(prevState.dir, this.transform));
+    }
+
+    public void CalculateStateChanges()
+    {
+        deltaPos = currState.pos - prevState.pos;
+        deltaDir = Utilities.GetSignedAngle(prevState.dir, currState.dir);
+    }
+
+    public void Run()
+    {
         UpdateCurrentUserState();
         CalculateStateChanges();
 
@@ -227,223 +264,11 @@ public class RedirectionManager : MonoBehaviour {
             }
         }
 
-        statisticsLogger.UpdateStats();
+        this.simulationManager.statisticsLogger.UpdateStats();
 
         UpdatePreviousUserState();
 
         UpdateBodyPose();
-    }
-
-    public void GetRasterization() { rasterization = gameObject.GetComponent<GridEnvironment>(); }
-
-    public float GetDeltaTime()
-    {
-        if (useManualTime)
-            return 1.0f / targetFPS;
-        else
-            return Time.deltaTime;
-    }
-
-    public float GetTime()
-    {
-        if (useManualTime)
-            return simulatedTime;
-        else
-            return Time.time;
-    }
-
-    void UpdateBodyPose()
-    {
-        body.position = Utilities.FlattenedPos3D(headTransform.position);
-        body.rotation = Quaternion.LookRotation(Utilities.FlattenedDir3D(headTransform.forward), Vector3.up);
-    }
-
-    void SetReferenceForRedirector()
-    {
-        if (redirector != null)
-            redirector.redirectionManager = this;
-    }
-
-    void SetReferenceForResetter()
-    {
-        if (resetter != null)
-            resetter.redirectionManager = this;
-    }
-
-    void SetReferenceForResetTrigger()
-    {
-        if (resetTrigger != null)
-            resetTrigger.redirectionManager = this;
-    }
-
-    void SetBodyReferenceForResetTrigger()
-    {
-        if (resetTrigger != null && body != null)
-        {
-            // NOTE: This requires that getBody gets called before this
-            resetTrigger.bodyCollider = body.GetComponentInChildren<CapsuleCollider>();
-        }
-    }
-
-    void SetReferenceForTrailDrawer()
-    {
-        if (trailDrawer != null)
-        {
-            trailDrawer.redirectionManager = this;
-        }
-    }
-
-    void SetReferenceForSimulationManager()
-    {
-        if (simulationManager != null)
-        {
-            simulationManager.redirectionManager = this;
-        }
-    }
-
-    void SetReferenceForSimulatedWalker()
-    {
-        if (simulatedWalker != null)
-        {
-            simulatedWalker.redirectionManager = this;
-        }
-    }
-
-    void SetReferenceForKeyboardController()
-    {
-        if (keyboardController != null)
-        {
-            keyboardController.redirectionManager = this;
-        }
-    }
-
-    void SetReferenceForSnapshotGenerator()
-    {
-        if (snapshotGenerator != null)
-        {
-            snapshotGenerator.redirectionManager = this;
-        }
-    }
-
-    void SetReferenceForStatisticsLogger()
-    {
-        if (statisticsLogger != null)
-        {
-            statisticsLogger.redirectionManager = this;
-        }
-    }
-
-    void SetReferenceForBodyHeadFollower()
-    {
-        if (bodyHeadFollower != null)
-        {
-            bodyHeadFollower.redirectionManager = this;
-        }
-    }
-
-    void GetRedirector()
-    {
-        redirector = this.gameObject.GetComponent<Redirector>();
-        if (redirector == null)
-            this.gameObject.AddComponent<NullRedirector>();
-        redirector = this.gameObject.GetComponent<Redirector>();
-    }
-
-    void GetResetter()
-    {
-        resetter = this.gameObject.GetComponent<Resetter>();
-        if (resetter == null)
-            this.gameObject.AddComponent<NullResetter>();
-        resetter = this.gameObject.GetComponent<Resetter>();
-    }
-
-    void GetResetTrigger()
-    {
-        resetTrigger = this.gameObject.GetComponentInChildren<ResetTrigger>();
-    }
-
-    void GetTrailDrawer()
-    {
-        trailDrawer = this.gameObject.GetComponent<TrailDrawer>();
-    }
-
-    void GetSimulationManager()
-    {
-        simulationManager = this.gameObject.GetComponent<SimulationManager>();
-    }
-
-    void GetSimulatedWalker()
-    {
-        simulatedWalker = simulatedHead.GetComponent<SimulatedWalker>();
-    }
-
-    void GetKeyboardController()
-    {
-        keyboardController = simulatedHead.GetComponent<KeyboardController>();
-    }
-
-    void GetSnapshotGenerator()
-    {
-        snapshotGenerator = this.gameObject.GetComponent<SnapshotGenerator>();
-    }
-
-    void GetStatisticsLogger()
-    {
-        statisticsLogger = this.gameObject.GetComponent<StatisticsLogger>();
-    }
-
-    void GetBodyHeadFollower()
-    {
-        bodyHeadFollower = body.GetComponent<HeadFollower>();
-    }
-
-    void GetBody()
-    {
-        body = transform.Find("Body");
-    }
-
-    void GetTrackedSpace()
-    {
-        trackedSpace = transform.Find("Tracked Space");
-        this.roomX = this.trackedSpace.localScale.x;
-        this.roomZ = this.trackedSpace.localScale.z;
-        this.roomCorners = new Vector2[4];
-        this.roomCorners[0] = new Vector2(roomX / 2, roomZ / 2);
-        this.roomCorners[1] = new Vector2(roomX / 2, -roomZ / 2);
-        this.roomCorners[2] = new Vector2(-roomX / 2, -roomZ / 2);
-        this.roomCorners[3] = new Vector2(-roomX / 2, roomZ / 2);
-    }
-
-    void GetSimulatedHead()
-    {
-        simulatedHead = transform.Find("Simulated User").Find("Head");
-    }
-
-    void GetTargetWaypoint()
-    {
-        targetWaypoint = transform.Find("Target Waypoint").gameObject.transform;
-    }
-
-    void UpdateCurrentUserState()
-    {
-        currState.pos = Utilities.FlattenedPos3D(headTransform.position);
-        currState.posReal = Utilities.GetRelativePosition(currState.pos, this.transform);
-        currState.dir = Utilities.FlattenedDir3D(headTransform.forward);
-        currState.dirReal = Utilities.FlattenedDir3D(Utilities.GetRelativeDirection(currState.dir, this.transform));
-    }
-
-    void UpdatePreviousUserState()
-    {
-        prevState.pos = Utilities.FlattenedPos3D(headTransform.position);
-        prevState.posReal = Utilities.GetRelativePosition(prevState.pos, this.transform);
-        prevState.dir = Utilities.FlattenedDir3D(headTransform.forward);
-        prevState.dirReal = Utilities.FlattenedDir3D(Utilities.GetRelativeDirection(prevState.dir, this.transform));
-    }
-
-    void CalculateStateChanges()
-    {
-        deltaPos = currState.pos - prevState.pos;
-        deltaDir = Utilities.GetSignedAngle(prevState.dir, currState.dir);
     }
 
     public void OnResetTrigger()
@@ -519,32 +344,7 @@ public class RedirectionManager : MonoBehaviour {
         }
     }
 
-    public void UpdateTrackedSpaceDimensions(float x, float z)
-    {
-        trackedSpace.localScale = new Vector3(x, 1, z);
-        this.roomX = trackedSpace.localScale.x;
-        this.roomZ = trackedSpace.localScale.z;
-        this.roomCorners[0] = new Vector2(roomX / 2, roomZ / 2);
-        this.roomCorners[1] = new Vector2(roomX / 2, -roomZ / 2);
-        this.roomCorners[2] = new Vector2(-roomX / 2, -roomZ / 2);
-        this.roomCorners[3] = new Vector2(-roomX / 2, roomZ / 2);
+ 
 
-        resetTrigger.Initialize();
-        if (this.resetter != null)
-            this.resetter.Initialize();
-    }
 
-    public void ResetEpisode()
-    {
-        this.trailDrawer.OnDisable();
-
-        // Resetting User and World Positions and Orientations
-        this.transform.position = Vector3.zero;
-        this.transform.rotation = Quaternion.identity;
-
-        this.headTransform.position = Utilities.UnFlatten(Vector2.zero, this.headTransform.position.y);
-        this.headTransform.rotation = Quaternion.LookRotation(Utilities.UnFlatten(Vector2.zero), Vector3.up);
-
-        this.trailDrawer.OnEnable();
-    }
 }

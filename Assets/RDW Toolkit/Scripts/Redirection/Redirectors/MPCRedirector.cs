@@ -240,7 +240,7 @@ public class MPCRedirector : Redirector {
         {
             LineSegment segment = (LineSegment)seg;
             Vector2 tangentDir = (segment.endPos - Utilities.FlattenedPos2D(state.pos)).normalized;
-            Vector2 delta_p = this.redirectionManager.speedReal * this.stageDuration * tangentDir;
+            Vector2 delta_p = this.simulationManager.motionManager.speedReal * this.stageDuration * tangentDir;
             
             // update virtual position and direction
             newState.pos = state.pos + Utilities.UnFlatten(delta_p);
@@ -263,12 +263,12 @@ public class MPCRedirector : Redirector {
             }
             else if (a.type == ActionType.ZERO)
             {
-                newState.posReal = state.posReal + state.dirReal * this.redirectionManager.speedReal * this.stageDuration;
+                newState.posReal = state.posReal + state.dirReal * this.simulationManager.motionManager.speedReal * this.stageDuration;
                 newState.dirReal = state.dirReal;
             }
             else if (a.type == ActionType.RESET)
             {
-                newState.posReal = state.posReal - state.dirReal * this.redirectionManager.speedReal * this.stageDuration;
+                newState.posReal = state.posReal - state.dirReal * this.simulationManager.motionManager.speedReal * this.stageDuration;
                 newState.dirReal = -state.dirReal;
             }
         }
@@ -277,7 +277,7 @@ public class MPCRedirector : Redirector {
             ArcSegment segment = (ArcSegment)seg;
 
             // update virtual position and direction
-            float s = this.redirectionManager.speedReal * this.stageDuration;
+            float s = this.simulationManager.motionManager.speedReal * this.stageDuration;
             float ori_v0 = Vector2.SignedAngle(Vector2.right, Utilities.FlattenedDir2D(state.dir)) * Mathf.Deg2Rad;
             newState.pos.x = (Mathf.Sin(ori_v0 + s/segment.radius) - Mathf.Sin(ori_v0)) * segment.radius + state.pos.x;
             newState.pos.z = (Mathf.Cos(ori_v0) - Mathf.Cos(ori_v0 + s/segment.radius)) / segment.radius + state.pos.z;
@@ -315,7 +315,7 @@ public class MPCRedirector : Redirector {
 
             // update virtual position and direction
             newState.pos = state.pos;
-            float rotatedAngle = this.redirectionManager.angularSpeedReal * this.stageDuration * Mathf.Sign(segment.angle);
+            float rotatedAngle = this.simulationManager.motionManager.angularSpeedReal * this.stageDuration * Mathf.Sign(segment.angle);
             newState.dir = Utilities.RotateVector(state.dir, rotatedAngle);
 
             if (a.type == ActionType.ROTATION)
@@ -364,11 +364,11 @@ public class MPCRedirector : Redirector {
         {
             Vector2 interPoint = Vector2.zero;
             // check the intersection of a ray casting from user's current pos/ori with the walls of the trackedspace
-            for (int i = 0; i < this.redirectionManager.roomCorners.Length; i++)
+            for (int i = 0; i < this.simulationManager.envManager.roomCorners.Length; i++)
             {
                 interPoint = Utilities.GetIntersection(Utilities.FlattenedPos2D(state.posReal), 
-                    Utilities.FlattenedDir2D(state.dirReal), this.redirectionManager.roomCorners[i%4],
-                    this.redirectionManager.roomCorners[(i + 1)%4]);
+                    Utilities.FlattenedDir2D(state.dirReal), this.simulationManager.envManager.roomCorners[i%4],
+                    this.simulationManager.envManager.roomCorners[(i + 1)%4]);
                 
                 // if we find the intersection point
                 if (!interPoint.Equals(Vector2.zero))
@@ -395,9 +395,9 @@ public class MPCRedirector : Redirector {
     /// <summary>
     /// The main MPC K-stage forward planning, this is basically depth-first tree search with branch cutting.
     /// </summary>
-    /// <param name="state"></param> current state
-    /// <param name="currSeg"></param> current segment of the user
-    /// <param name="depth"></param> the planning depth
+    /// <param name="state"> current state</param>
+    /// <param name="currSeg">current segment of the user</param>
+    /// <param name="depth">the planning depth</param>
     /// <returns></returns>
     public MPCResult Plan(RedirectionManager.State state, Segment currSeg, int depth) {
         //Debug.Log("Plan called");
@@ -476,7 +476,7 @@ public class MPCRedirector : Redirector {
         float deltaDir = redirectionManager.deltaDir;
 
         
-        if (deltaPos.magnitude / redirectionManager.GetDeltaTime() > MOVEMENT_THRESHOLD) // User is moving
+        if (deltaPos.magnitude / simulationManager.GetDeltaTime() > MOVEMENT_THRESHOLD) // User is moving
         {
             if (this.currAction.type == ActionType.CURVATURE)
             {
@@ -485,7 +485,7 @@ public class MPCRedirector : Redirector {
             }   
         }
 
-        if (Mathf.Abs(deltaDir) / redirectionManager.GetDeltaTime() >= ROTATION_THRESHOLD)  // if User is rotating
+        if (Mathf.Abs(deltaDir) / simulationManager.GetDeltaTime() >= ROTATION_THRESHOLD)  // if User is rotating
         {
             if (this.currAction.type == ActionType.ROTATION)
             {

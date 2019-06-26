@@ -4,7 +4,7 @@ using System.Collections;
 public class HeadFollower : MonoBehaviour {
 
     [HideInInspector]
-    public RedirectionManager redirectionManager;
+    public SimulationManager simulationManager;
 
 	// Use this for initialization
 	void Start () {
@@ -13,8 +13,8 @@ public class HeadFollower : MonoBehaviour {
 	
 	// Update is called once per frame
 	void Update () {
-        this.transform.position = redirectionManager.currState.pos;
-        if (redirectionManager.currState.dir != Vector3.zero)
-            this.transform.rotation = Quaternion.LookRotation(redirectionManager.currState.dir, Vector3.up);
+        this.transform.position = simulationManager.redirectionManager.currState.pos;
+        if (simulationManager.redirectionManager.currState.dir != Vector3.zero)
+            this.transform.rotation = Quaternion.LookRotation(simulationManager.redirectionManager.currState.dir, Vector3.up);
 	}
 }

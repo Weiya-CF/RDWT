@@ -6,10 +6,13 @@ public abstract class Resetter : MonoBehaviour {
 
     [HideInInspector]
     public RedirectionManager redirectionManager;
+    [HideInInspector]
+    public SimulationManager simulationManager;
 
     enum Boundary { Top, Bottom, Right, Left };
 
     public float maxX, maxZ;
+
 
     /// <summary>
     /// Function called when reset trigger is signaled, to see if resetter believes resetting is necessary.
@@ -31,13 +34,13 @@ public abstract class Resetter : MonoBehaviour {
     {
         this.transform.RotateAround(Utilities.FlattenedPos3D(redirectionManager.headTransform.position), Vector3.up, rotationInDegrees);
         this.GetComponentInChildren<KeyboardController>().SetLastRotation(rotationInDegrees);
-        redirectionManager.statisticsLogger.Event_Rotation_Gain_Reorientation(rotationInDegrees / redirectionManager.deltaDir, rotationInDegrees);
+        simulationManager.statisticsLogger.Event_Rotation_Gain_Reorientation(rotationInDegrees / redirectionManager.deltaDir, rotationInDegrees);
     }
 
     public void Initialize()
     {
-        maxX = 0.5f * (redirectionManager.trackedSpace.localScale.x) - redirectionManager.resetTrigger.RESET_TRIGGER_BUFFER;// redirectionManager.resetTrigger.xLength);// + USER_CAPSULE_COLLIDER_DIAMETER);
-        maxZ = 0.5f * (redirectionManager.trackedSpace.localScale.z) - redirectionManager.resetTrigger.RESET_TRIGGER_BUFFER;
+        maxX = 0.5f * (simulationManager.envManager.trackedSpace.localScale.x) - redirectionManager.resetTrigger.RESET_TRIGGER_BUFFER;// redirectionManager.resetTrigger.xLength);// + USER_CAPSULE_COLLIDER_DIAMETER);
+        maxZ = 0.5f * (simulationManager.envManager.trackedSpace.localScale.z) - redirectionManager.resetTrigger.RESET_TRIGGER_BUFFER;
         //print("PRACTICAL MAX X: " + maxX);
     }
 

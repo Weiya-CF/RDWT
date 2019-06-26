@@ -100,7 +100,7 @@ public class ZigZagRedirector : Redirector
         this.transform.rotation = desiredRotation;
         this.transform.position = point0 + this.transform.position.y * Vector3.up - pinnedPointPositionRotationCorrect;
 
-        if (redirectionManager.MOVEMENT_CONTROLLER == RedirectionManager.MovementController.AutoPilot)
+        if (simulationManager.motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
         {
             WAYPOINT_UPDATE_DISTANCE = 0.1f;
             SLOW_DOWN_VELOCITY_THRESHOLD = 100f;
@@ -122,7 +122,7 @@ public class ZigZagRedirector : Redirector
     void updateWaypoint()
     {
         bool userIsNearTarget = Utilities.FlattenedPos3D(redirectionManager.currState.pos - waypoints[waypointIndex].position).magnitude < WAYPOINT_UPDATE_DISTANCE;
-        bool userHasSlownDown = redirectionManager.deltaPos.magnitude / redirectionManager.GetDeltaTime() < SLOW_DOWN_VELOCITY_THRESHOLD;
+        bool userHasSlownDown = redirectionManager.deltaPos.magnitude / simulationManager.GetDeltaTime() < SLOW_DOWN_VELOCITY_THRESHOLD;
         bool userHasMoreWaypointsLeft = waypointIndex < waypoints.Count - 1;
         if (userIsNearTarget && userHasSlownDown && userHasMoreWaypointsLeft && !redirectionManager.inReset)
         {

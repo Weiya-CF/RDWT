@@ -6,6 +6,10 @@ public class SimulatedWalker : MonoBehaviour {
 
     [HideInInspector]
     public RedirectionManager redirectionManager;
+    [HideInInspector]
+    public MotionManager motionManager;
+    [HideInInspector]
+    public SimulationManager simulationManager;
 
     /// <summary>
     /// Translation speed in meters per second.
@@ -34,7 +38,7 @@ public class SimulatedWalker : MonoBehaviour {
 	//public void WalkUpdate () {
     public void Update()
     {
-        if (redirectionManager.simulationManager.userIsWalking && redirectionManager.MOVEMENT_CONTROLLER == RedirectionManager.MovementController.AutoPilot)
+        if (simulationManager.userIsWalking && simulationManager.motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
         {
             if (!redirectionManager.inReset)
                 TurnAndWalkToWaypoint();
@@ -57,7 +61,7 @@ public class SimulatedWalker : MonoBehaviour {
     public void RotateIfNecessary(float rotationToTargetInDegrees, Vector3 userToTargetVectorFlat)
     {
         // Handle Rotation To Waypoint
-        float rotationToApplyInDegrees = Mathf.Sign(rotationToTargetInDegrees) * Mathf.Min(redirectionManager.GetDeltaTime() * rotationSpeed, Mathf.Abs(rotationToTargetInDegrees));
+        float rotationToApplyInDegrees = Mathf.Sign(rotationToTargetInDegrees) * Mathf.Min(simulationManager.GetDeltaTime() * rotationSpeed, Mathf.Abs(rotationToTargetInDegrees));
         // Only rotate if you have a reasonable distance to target
         // I'm not happy with this hack and I'm not sure how to explain the behavior because it keeps trying to rotate until the user faces southeast and then it stops!
         //if (!UserController.Approximately(userToWaypointVector2D, Vector2.zero))
@@ -70,7 +74,7 @@ public class SimulatedWalker : MonoBehaviour {
     // Rotates rightward in place
     public void RotateInPlace()
     {
-        transform.Rotate(Vector3.up, redirectionManager.GetDeltaTime() * rotationSpeed, Space.World);
+        transform.Rotate(Vector3.up, simulationManager.GetDeltaTime() * rotationSpeed, Space.World);
     }
 
     
@@ -83,7 +87,7 @@ public class SimulatedWalker : MonoBehaviour {
         {
             //print("ALLOWED WALKING DISTANCE: "+redirectionManager.resetter.getMaxWalkableDistanceBeforeReset());
             // Ensuring we don't overshoot the waypoint, and we don't go out of boundary
-            float distanceToTravel = Mathf.Min(Mathf.Min(redirectionManager.GetDeltaTime() * translationSpeed, userToTargetVectorFlat.magnitude), EXTRA_WALK_TO_ENSURE_RESET + redirectionManager.resetter.getMaxWalkableDistanceBeforeReset());
+            float distanceToTravel = Mathf.Min(Mathf.Min(simulationManager.GetDeltaTime() * translationSpeed, userToTargetVectorFlat.magnitude), EXTRA_WALK_TO_ENSURE_RESET + redirectionManager.resetter.getMaxWalkableDistanceBeforeReset());
             //Debug.Log("User Position: " + transform.position.ToString("f4"));
             //print("distanceToTravel: " + distanceToTravel);
             //Debug.Log("Expected Translation: " + (distanceToTravel * RedirectionManager.flatten3D(redirectionManager.getUserForward3D()).normalized).ToString("F4"));
@@ -101,7 +105,7 @@ public class SimulatedWalker : MonoBehaviour {
 
     void GetDistanceAndRotationToWaypoint(out float rotationToTargetInDegrees, out Vector3 userToTargetVectorFlat)
     {
-        userToTargetVectorFlat = Utilities.FlattenedPos3D(redirectionManager.targetWaypoint.position - redirectionManager.currState.pos);
+        userToTargetVectorFlat = Utilities.FlattenedPos3D(motionManager.targetWaypoint.position - redirectionManager.currState.pos);
         rotationToTargetInDegrees = Utilities.GetSignedAngle(Utilities.FlattenedDir3D(redirectionManager.currState.dir), userToTargetVectorFlat);
     }
 
