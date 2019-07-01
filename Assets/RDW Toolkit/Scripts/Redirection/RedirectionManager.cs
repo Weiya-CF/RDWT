@@ -68,8 +68,6 @@ public class RedirectionManager : MonoBehaviour {
     [HideInInspector]
     public bool inReset = false;
 
-    public bool runInTestMode;
-
     public struct State
     {
         public Vector3 pos, posReal; // user's virtual and real position
@@ -110,44 +108,48 @@ public class RedirectionManager : MonoBehaviour {
 
     public void Initialize()
     {
-        if (this.runInTestMode)
+
+        switch (condAlgorithm)
         {
-            switch (condAlgorithm)
-            {
-                case AlgorithmChoice.None:
-                    redirectorType = typeof(NullRedirector);
-                    break;
-                case AlgorithmChoice.S2C:
-                    redirectorType = typeof(S2CRedirector);
-                    break;
-                case AlgorithmChoice.S2O:
-                    redirectorType = typeof(S2ORedirector);
-                    break;
-                case AlgorithmChoice.Zigzag:
-                    redirectorType = typeof(ZigZagRedirector);
-                    break;
-                case AlgorithmChoice.MPC:
-                    redirectorType = typeof(MPCRedirector);
-                    break;
-                case AlgorithmChoice.Q:
-                    redirectorType = typeof(QLearningRedirector);
-                    break;
-            }
-            switch (condReset)
-            {
-                case ResetChoice.None:
-                    resetterType = typeof(NullResetter);
-                    break;
-                case ResetChoice.TwoOneTurn:
-                    resetterType = typeof(TwoOneTurnResetter);
-                    break;
-            }
+            case AlgorithmChoice.None:
+                redirectorType = typeof(NullRedirector);
+                break;
+            case AlgorithmChoice.S2C:
+                redirectorType = typeof(S2CRedirector);
+                break;
+            case AlgorithmChoice.S2O:
+                redirectorType = typeof(S2ORedirector);
+                break;
+            case AlgorithmChoice.Zigzag:
+                redirectorType = typeof(ZigZagRedirector);
+                break;
+            case AlgorithmChoice.MPC:
+                redirectorType = typeof(MPCRedirector);
+                break;
+            case AlgorithmChoice.Q:
+                redirectorType = typeof(QLearningRedirector);
+                break;
         }
 
-            resetTrigger.Initialize();
+        switch (condReset)
+        {
+            case ResetChoice.None:
+                resetterType = typeof(NullResetter);
+                break;
+            case ResetChoice.TwoOneTurn:
+                resetterType = typeof(TwoOneTurnResetter);
+                break;
+        }
+
+        
+        resetTrigger.Initialize();
         // Resetter needs ResetTrigger to be initialized before initializing itself
         if (resetter != null)
             resetter.Initialize();
+
+        // Enabling/Disabling Redirectors
+        this.UpdateRedirector(this.redirectorType);
+        this.UpdateResetter(this.resetterType);
     }
 
     void UpdateBodyPose()
@@ -254,6 +256,7 @@ public class RedirectionManager : MonoBehaviour {
             if (resetter != null)
             {
                 resetter.ApplyResetting();
+                Debug.LogWarning("Reset Calledddd!");
             }
         }
         else
@@ -261,6 +264,7 @@ public class RedirectionManager : MonoBehaviour {
             if (redirector != null)
             {
                 redirector.ApplyRedirection();
+                Debug.LogWarning("Redirection Calledddd!");
             }
         }
 
@@ -280,7 +284,7 @@ public class RedirectionManager : MonoBehaviour {
         //print("Is Resetter Null? " + (resetter == null));
         if (resetter != null && resetter.IsResetRequired())
         {
-            //print("RESET WAS REQUIRED");
+            Debug.Log("RESET WAS REQUIRED");
             resetter.InitializeReset();
             inReset = true;
 

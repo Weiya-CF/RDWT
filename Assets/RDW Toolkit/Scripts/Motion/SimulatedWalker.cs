@@ -40,6 +40,7 @@ public class SimulatedWalker : MonoBehaviour {
     {
         if (simulationManager.userIsWalking && simulationManager.motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
         {
+            //Debug.Log("Simulated Walking update");
             if (!redirectionManager.inReset)
                 TurnAndWalkToWaypoint();
             else

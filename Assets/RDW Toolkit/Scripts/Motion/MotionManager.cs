@@ -1,4 +1,5 @@
-﻿using System.Collections;
+﻿using Redirection;
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -18,6 +19,13 @@ public class MotionManager : MonoBehaviour
     [HideInInspector]
     public int waypointIterator = 0;
 
+    enum PathSeedChoice { Line, Office, ExplorationSmall, ExplorationLarge, LongWalk, ZigZag };
+
+    [SerializeField]
+    VirtualPathGenerator.PathSeedChoice condPath;
+
+    VirtualPathGenerator.PathSeed currentPathSeed;
+
     [Tooltip("How user movement is controlled.")]
     public MovementController MOVEMENT_CONTROLLER = MovementController.Tracker;
 
@@ -32,6 +40,9 @@ public class MotionManager : MonoBehaviour
 
     public enum MovementController { Keyboard, AutoPilot, Tracker };
 
+    Vector2 initialPosition;
+    Vector2 initialForward;
+
 
     // Start is called before the first frame update
     void Start()
@@ -43,6 +54,84 @@ public class MotionManager : MonoBehaviour
     void Update()
     {
         
+    }
+
+    public void Initialize()
+    {
+        this.initialPosition = Vector2.zero;
+        this.initialForward = Vector2.up;
+
+        // Initialize according to the motion type
+        if (this.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
+            this.DISTANCE_TO_WAYPOINT_THRESHOLD = 0.05f;// 0.0001f;
+
+        if (this.MOVEMENT_CONTROLLER == MotionManager.MovementController.Tracker)
+            return;
+        else
+        {
+            InstantiateSimulationPrefab();
+            simulationManager.redirectionManager.headTransform = simulationManager.simulatedHead;
+            Debug.Log("First waypoint initialized");
+        }
+
+        switch (condPath)
+        {
+            case VirtualPathGenerator.PathSeedChoice.Office:
+                currentPathSeed = VirtualPathGenerator.getPathSeedOfficeBuilding();
+                break;
+            case VirtualPathGenerator.PathSeedChoice.ExplorationSmall:
+                currentPathSeed = VirtualPathGenerator.getPathSeedExplorationSmall();
+                break;
+            case VirtualPathGenerator.PathSeedChoice.ExplorationLarge:
+                currentPathSeed = VirtualPathGenerator.getPathSeedExplorationLarge();
+                break;
+            case VirtualPathGenerator.PathSeedChoice.LongWalk:
+                currentPathSeed = VirtualPathGenerator.getPathSeedLongCorridor();
+                break;
+            case VirtualPathGenerator.PathSeedChoice.ZigZag:
+                currentPathSeed = VirtualPathGenerator.getPathSeedZigzag();
+                break;
+        }
+
+        float sumOfDistances, sumOfRotations;
+        this.waypoints = VirtualPathGenerator.generatePath(currentPathSeed, initialPosition, initialForward, out sumOfDistances, out sumOfRotations);
+        Debug.Log("MOTION sumOfDistances: " + sumOfDistances);
+        Debug.Log("MOTION sumOfRotations: " + sumOfRotations);
+
+        // Set First Waypoint Position and Enable It
+        this.targetWaypoint.position = new Vector3(this.waypoints[0].x, this.targetWaypoint.position.y, this.waypoints[0].y);
+        this.waypointIterator = 0;
+    }
+
+    public void UpdateWaypoint(RedirectionManager.State userCurrState)
+    {
+        if ((userCurrState.pos - Utilities.FlattenedPos3D(this.targetWaypoint.position)).magnitude < this.DISTANCE_TO_WAYPOINT_THRESHOLD)
+        {
+            if (this.waypointIterator == this.waypoints.Count - 1)
+            {
+                // This is the last target
+                if (this.simulationManager.simuMode == SimulationManager.SimuMode.Test)
+                {
+                    this.simulationManager.simuEnded = true;
+                    Debug.Log("User arrived at destination.");
+                }
+                else
+                {
+                    this.simulationManager.episodeEnded = true;
+                    // Stop when meets the max episode
+                }
+
+
+            }
+            else
+            {
+                this.waypointIterator++;
+                this.targetWaypoint.position = new Vector3(
+                    this.waypoints[this.waypointIterator].x,
+                    this.targetWaypoint.position.y,
+                    this.waypoints[this.waypointIterator].y);
+            }
+        }
     }
 
     public void InstantiateSimulationPrefab()
@@ -84,10 +173,5 @@ public class MotionManager : MonoBehaviour
     public void GetKeyboardController()
     {
         keyboardController = simulationManager.simulatedHead.GetComponent<KeyboardController>();
-    }
-
-    public void GetTargetWaypoint()
-    {
-        targetWaypoint = transform.Find("Target Waypoint").gameObject.transform;
     }
 }

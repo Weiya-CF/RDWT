@@ -448,8 +448,6 @@ public class ExperimentManager : MonoBehaviour {
             simulationManager.statisticsLogger.LogExperimentSummaryStatisticsResultsSCSV(simulationManager.statisticsLogger.experimentResults);
             Debug.Log("Last Experiment Complete");
             experimentComplete = true;
-            if (simulationManager.redirectionManager.runInTestMode)
-                Application.Quit();
         }
 
         // Disabling Redirectors

@@ -5,6 +5,11 @@ using System;
 
 public class SimulationManager : MonoBehaviour {
 
+    public enum SimuMode { Test, Learn };
+
+    [SerializeField]
+    public SimuMode simuMode;
+
     [HideInInspector]
     public RedirectionManager redirectionManager;
     [HideInInspector]
@@ -12,8 +17,6 @@ public class SimulationManager : MonoBehaviour {
     [HideInInspector]
     public EnvManager envManager;
 
-    [SerializeField]
-    bool runInSimulationMode = false;
     [SerializeField]
     public bool averageTrialResults = false;
 
@@ -47,6 +50,10 @@ public class SimulationManager : MonoBehaviour {
     
     [HideInInspector]
     public string startTimeOfProgram;
+    [HideInInspector]
+    public bool simuEnded;
+    [HideInInspector]
+    public bool episodeEnded;
 
     private float simulatedTime = 0;
 
@@ -94,11 +101,6 @@ public class SimulationManager : MonoBehaviour {
 
         // Env Manager
         this.envManager.GetTrackedSpace();
-
-        // Q-Learning
-        GetRasterization();
-        rasterization.simulationManager = this;
-        rasterization.redirectionManager = this.redirectionManager;
     }
 
     private void GetMotionManager()
@@ -116,19 +118,7 @@ public class SimulationManager : MonoBehaviour {
         simulatedTime = 0;
         this.redirectionManager.Initialize();
 
-        // Motion
-        this.redirectionManager.runInTestMode = runInSimulationMode;
-        userIsWalking = !(motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot);
-        if (motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
-            motionManager.DISTANCE_TO_WAYPOINT_THRESHOLD = 0.05f;// 0.0001f;
 
-        if (motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.Tracker)
-            return;
-        else
-        {
-            motionManager.InstantiateSimulationPrefab();
-            redirectionManager.headTransform = simulatedHead;
-        }
 
         // Setting Random Seed
         UnityEngine.Random.InitState(VirtualPathGenerator.RANDOM_SEED);
@@ -137,33 +127,29 @@ public class SimulationManager : MonoBehaviour {
 
         //Debug.Log("Application.targetFrameRate: " + Application.targetFrameRate);
 
-        if (runAtFullSpeed && this.enabled)
+        if (this.runAtFullSpeed && this.enabled)
         {
             //redirectionManager.topViewCamera.enabled = false;
             //drawVirtualPath = false;
             QualitySettings.vSyncCount = 0;
         }
 
+        // Start Simulation
+        // Setup Trail Drawing
+        this.trailDrawer.enabled = !this.runAtFullSpeed;
+
+        // Enable Waypoint
+        userIsWalking = !(motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot);
+
+        this.motionManager.Initialize();
+        this.motionManager.targetWaypoint.gameObject.SetActive(true);
+
     }
 
     // Update is called once per frame
     void Update()
     {
-        if ((this.redirectionManager.currState.pos - Utilities.FlattenedPos3D(this.motionManager.targetWaypoint.position)).magnitude < this.motionManager.DISTANCE_TO_WAYPOINT_THRESHOLD)
-        {
-            if (this.motionManager.waypointIterator == this.motionManager.waypoints.Count - 1)
-            {
-                Application.Quit();
-            }
-            else
-            {
-                this.motionManager.waypointIterator++;
-                this.motionManager.targetWaypoint.position = new Vector3(this.motionManager.waypoints[
-                    this.motionManager.waypointIterator].x, 
-                    this.motionManager.targetWaypoint.position.y, 
-                    this.motionManager.waypoints[this.motionManager.waypointIterator].y);
-            }
-        }
+        
 
     }
 
@@ -171,13 +157,26 @@ public class SimulationManager : MonoBehaviour {
     // LateUpdate is called every frame, if the Behaviour is enabled.
     void LateUpdate()
     {
-        simulatedTime += 1.0f / targetFPS;
+        if (!this.simuEnded)
+        {
+            simulatedTime += 1.0f / targetFPS;
 
-        //if (MOVEMENT_CONTROLLER == MovementController.AutoPilot)
-        //    simulatedWalker.WalkUpdate();
+            // Motion part
+            this.motionManager.UpdateWaypoint(this.redirectionManager.currState);
 
-        // Redirection Part
-        this.redirectionManager.Run();
+            // Redirection Part
+            this.redirectionManager.Run();
+
+            if (!userIsWalking)
+            {
+                userIsWalking = true;
+                //// Allow Walking
+                //UserController.allowWalking = true;
+                // Start Logging
+                statisticsLogger.BeginLogging();
+            }
+        }
+        
     }
 
     void SetReferenceForRedirectionManager()
@@ -296,8 +295,4 @@ public class SimulationManager : MonoBehaviour {
         this.trailDrawer.OnEnable();
     }
 
-    public void GetRasterization()
-    {
-        rasterization = GameObject.Find("GridEnv").GetComponent<GridEnvironment>();
-    }
 }
