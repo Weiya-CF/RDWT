@@ -75,8 +75,6 @@ public class SimulationManager : MonoBehaviour {
         SetReferenceForTrailDrawer();
         SetReferenceForStatisticsLogger();
         SetReferenceForBodyHeadFollower();
-        
-        GetRasterization();
 
         // Redirection Manager
         this.redirectionManager.GetRedirector();
@@ -97,6 +95,10 @@ public class SimulationManager : MonoBehaviour {
         // Env Manager
         this.envManager.GetTrackedSpace();
 
+        // Q-Learning
+        GetRasterization();
+        rasterization.simulationManager = this;
+        rasterization.redirectionManager = this.redirectionManager;
     }
 
     private void GetMotionManager()
@@ -147,7 +149,21 @@ public class SimulationManager : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
-        
+        if ((this.redirectionManager.currState.pos - Utilities.FlattenedPos3D(this.motionManager.targetWaypoint.position)).magnitude < this.motionManager.DISTANCE_TO_WAYPOINT_THRESHOLD)
+        {
+            if (this.motionManager.waypointIterator == this.motionManager.waypoints.Count - 1)
+            {
+                Application.Quit();
+            }
+            else
+            {
+                this.motionManager.waypointIterator++;
+                this.motionManager.targetWaypoint.position = new Vector3(this.motionManager.waypoints[
+                    this.motionManager.waypointIterator].x, 
+                    this.motionManager.targetWaypoint.position.y, 
+                    this.motionManager.waypoints[this.motionManager.waypointIterator].y);
+            }
+        }
 
     }
 
@@ -280,5 +296,8 @@ public class SimulationManager : MonoBehaviour {
         this.trailDrawer.OnEnable();
     }
 
-    public void GetRasterization() { rasterization = gameObject.GetComponent<GridEnvironment>(); }
+    public void GetRasterization()
+    {
+        rasterization = GameObject.Find("GridEnv").GetComponent<GridEnvironment>();
+    }
 }

@@ -5,7 +5,9 @@ using UnityEngine.UI;
 
 public class GridEnvironment : Environment
 {
+    [HideInInspector]
     public RedirectionManager redirectionManager;
+    [HideInInspector]
     public SimulationManager simulationManager;
 
     [Tooltip("How we divide the tracking zone into grids")]
