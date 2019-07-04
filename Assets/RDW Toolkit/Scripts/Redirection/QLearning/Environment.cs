@@ -19,6 +19,7 @@ public abstract class Environment : MonoBehaviour
 {
     public float reward;
     public bool done;
+    public bool doneLearning;
     public int maxSteps;
     public int currentStep;
     public bool begun;
@@ -30,14 +31,14 @@ public abstract class Environment : MonoBehaviour
     //public int comPort;
     public int frameToSkip;
     public int framesSinceAction;
-    public string currentPythonCommand;
     public bool skippingFrames;
     public float[] actions; // the action may have multiple dimensions
     public float waitTime;
-    public int episodeCount;
-    public bool humanControl;
 
-    public int sendAction;
+    public int episodeMax;
+    public int episodeCount;
+
+    public int sendAction; // the selected action that will be sent to the Environment
 
     public EnvironmentParameters envParameters;
 
@@ -56,6 +57,7 @@ public abstract class Environment : MonoBehaviour
         };
         begun = false;
         acceptingSteps = true;
+        doneLearning = false;
     }
 
     // Update is called once per frame
@@ -72,7 +74,7 @@ public abstract class Environment : MonoBehaviour
 
     public virtual void Step()
     {
-        Debug.Log("current step: " + currentStep);
+        //Debug.Log("current step: " + currentStep);
         acceptingSteps = false;
         currentStep += 1;
         if (currentStep >= maxSteps)
@@ -119,8 +121,16 @@ public abstract class Environment : MonoBehaviour
         reward = 0;
         currentStep = 0;
         episodeCount++;
-        done = false;
-        acceptingSteps = false;
+        Debug.Log("!!!!!episodeCount: " + episodeCount);
+        if (episodeCount <= episodeMax)
+        {
+            done = false;
+            acceptingSteps = false;
+        }
+        else
+        {
+            doneLearning = true;
+        }
     }
 
     public virtual void EndReset()
@@ -135,9 +145,9 @@ public abstract class Environment : MonoBehaviour
     public virtual void RunMdp()
     {
         //Debug.Log("Running MDP");
-        if (acceptingSteps)
+        if (!doneLearning && acceptingSteps)
         {
-            if (done == false)
+            if (!done)
             {
                 Step();
             }

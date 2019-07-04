@@ -124,7 +124,7 @@ public class ExperimentManager : MonoBehaviour {
     // Update is called once per frame
     void Update()
     {
-        if (simulationManager.motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.Tracker)
+        if (simulationManager.motionManager.movementController == MotionManager.MovementController.Tracker)
             return;
         //framesGoneBy++;
         //if (firstUpdateRealTime == 0)

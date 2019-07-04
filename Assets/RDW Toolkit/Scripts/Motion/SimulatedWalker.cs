@@ -23,8 +23,6 @@ public class SimulatedWalker : MonoBehaviour {
     [SerializeField, Range(0.01f, 360)]
     public float rotationSpeed = 90;
 
-
-
     const float MINIMUM_DISTANCE_TO_WAYPOINT_FOR_ROTATION = 0.0001f;
     const float ROTATIONAL_ERROR_ACCEPTED_IN_DEGRESS = 1;//0.2f; // If user's angular deviation from target is more than this value, we won't move (until we face the target better) - If you go low sometimes it can stop close to target
     const float EXTRA_WALK_TO_ENSURE_RESET = 0.01f;
@@ -38,7 +36,7 @@ public class SimulatedWalker : MonoBehaviour {
 	//public void WalkUpdate () {
     public void Update()
     {
-        if (simulationManager.userIsWalking && simulationManager.motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
+        if (!simulationManager.simuEnded && simulationManager.userIsWalking && simulationManager.motionManager.movementController == MotionManager.MovementController.AutoPilot)
         {
             //Debug.Log("Simulated Walking update");
             if (!redirectionManager.inReset)

@@ -67,8 +67,12 @@ public class SnapshotGenerator : MonoBehaviour {
         if (!Directory.Exists(directory))
         {
             Directory.CreateDirectory(directory);
-            //Debug.LogWarning("Created Directory: " + directory);
+            Debug.Log("Created Directory: " + directory);
         }
-        //Debug.LogWarning("Directory Existed: " + directory);
+        else
+        {
+            Debug.LogWarning("Directory Existed: " + directory);
+        }
+        
     }
 }

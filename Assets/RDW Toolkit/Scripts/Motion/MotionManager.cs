@@ -19,15 +19,13 @@ public class MotionManager : MonoBehaviour
     [HideInInspector]
     public int waypointIterator = 0;
 
-    enum PathSeedChoice { Line, Office, ExplorationSmall, ExplorationLarge, LongWalk, ZigZag };
-
     [SerializeField]
     VirtualPathGenerator.PathSeedChoice condPath;
 
     VirtualPathGenerator.PathSeed currentPathSeed;
 
     [Tooltip("How user movement is controlled.")]
-    public MovementController MOVEMENT_CONTROLLER = MovementController.Tracker;
+    public MovementController movementController = MovementController.Tracker;
 
     [Tooltip("Tangent speed in auto-pilot mode")]
     public float speedReal;
@@ -38,7 +36,7 @@ public class MotionManager : MonoBehaviour
     [SerializeField]
     public float DISTANCE_TO_WAYPOINT_THRESHOLD = 0.3f; // Distance requirement to trigger waypoint
 
-    public enum MovementController { Keyboard, AutoPilot, Tracker };
+    public enum MovementController { AutoPilot, Keyboard, Tracker };
 
     Vector2 initialPosition;
     Vector2 initialForward;
@@ -62,65 +60,64 @@ public class MotionManager : MonoBehaviour
         this.initialForward = Vector2.up;
 
         // Initialize according to the motion type
-        if (this.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
+        if (this.movementController == MotionManager.MovementController.AutoPilot)
+        {
             this.DISTANCE_TO_WAYPOINT_THRESHOLD = 0.05f;// 0.0001f;
 
-        if (this.MOVEMENT_CONTROLLER == MotionManager.MovementController.Tracker)
-            return;
-        else
-        {
+            // Setup waypoints and pathseed
             InstantiateSimulationPrefab();
-            simulationManager.redirectionManager.headTransform = simulationManager.simulatedHead;
+
+            switch (condPath)
+            {
+                case VirtualPathGenerator.PathSeedChoice.Office:
+                    currentPathSeed = VirtualPathGenerator.getPathSeedOfficeBuilding();
+                    break;
+                case VirtualPathGenerator.PathSeedChoice.ExplorationSmall:
+                    currentPathSeed = VirtualPathGenerator.getPathSeedExplorationSmall();
+                    break;
+                case VirtualPathGenerator.PathSeedChoice.ExplorationLarge:
+                    currentPathSeed = VirtualPathGenerator.getPathSeedExplorationLarge();
+                    break;
+                case VirtualPathGenerator.PathSeedChoice.LongWalk:
+                    currentPathSeed = VirtualPathGenerator.getPathSeedLongCorridor();
+                    break;
+                case VirtualPathGenerator.PathSeedChoice.ZigZag:
+                    currentPathSeed = VirtualPathGenerator.getPathSeedZigzag();
+                    break;
+                case VirtualPathGenerator.PathSeedChoice.Maze:
+                    this.waypoints = VirtualPathGenerator.getPathSeedMaze();
+                    break;
+            }
+
+            if (condPath != VirtualPathGenerator.PathSeedChoice.Maze)
+            {
+                float sumOfDistances, sumOfRotations;
+                this.waypoints = VirtualPathGenerator.generatePath(currentPathSeed, initialPosition, initialForward, out sumOfDistances, out sumOfRotations);
+                Debug.Log("MOTION sumOfDistances: " + sumOfDistances);
+                Debug.Log("MOTION sumOfRotations: " + sumOfRotations);
+            }
+            
+
+            // Set First Waypoint Position and Enable It
+            this.targetWaypoint.position = new Vector3(this.waypoints[0].x, this.targetWaypoint.position.y, this.waypoints[0].y);
+            this.waypointIterator = 0;
+            this.targetWaypoint.gameObject.SetActive(true);
             Debug.Log("First waypoint initialized");
         }
 
-        switch (condPath)
-        {
-            case VirtualPathGenerator.PathSeedChoice.Office:
-                currentPathSeed = VirtualPathGenerator.getPathSeedOfficeBuilding();
-                break;
-            case VirtualPathGenerator.PathSeedChoice.ExplorationSmall:
-                currentPathSeed = VirtualPathGenerator.getPathSeedExplorationSmall();
-                break;
-            case VirtualPathGenerator.PathSeedChoice.ExplorationLarge:
-                currentPathSeed = VirtualPathGenerator.getPathSeedExplorationLarge();
-                break;
-            case VirtualPathGenerator.PathSeedChoice.LongWalk:
-                currentPathSeed = VirtualPathGenerator.getPathSeedLongCorridor();
-                break;
-            case VirtualPathGenerator.PathSeedChoice.ZigZag:
-                currentPathSeed = VirtualPathGenerator.getPathSeedZigzag();
-                break;
-        }
-
-        float sumOfDistances, sumOfRotations;
-        this.waypoints = VirtualPathGenerator.generatePath(currentPathSeed, initialPosition, initialForward, out sumOfDistances, out sumOfRotations);
-        Debug.Log("MOTION sumOfDistances: " + sumOfDistances);
-        Debug.Log("MOTION sumOfRotations: " + sumOfRotations);
-
-        // Set First Waypoint Position and Enable It
-        this.targetWaypoint.position = new Vector3(this.waypoints[0].x, this.targetWaypoint.position.y, this.waypoints[0].y);
-        this.waypointIterator = 0;
+       
     }
 
     public void UpdateWaypoint(RedirectionManager.State userCurrState)
     {
         if ((userCurrState.pos - Utilities.FlattenedPos3D(this.targetWaypoint.position)).magnitude < this.DISTANCE_TO_WAYPOINT_THRESHOLD)
         {
+            // This is the last target
             if (this.waypointIterator == this.waypoints.Count - 1)
             {
-                // This is the last target
-                if (this.simulationManager.simuMode == SimulationManager.SimuMode.Test)
-                {
-                    this.simulationManager.simuEnded = true;
-                    Debug.Log("User arrived at destination.");
-                }
-                else
-                {
-                    this.simulationManager.episodeEnded = true;
-                    // Stop when meets the max episode
-                }
-
+                // Gather Summary Statistics for each episode
+                simulationManager.statisticsLogger.experimentResults.Add(simulationManager.statisticsLogger.GetSummaryStatistics());
+                this.simulationManager.EndRound();
 
             }
             else

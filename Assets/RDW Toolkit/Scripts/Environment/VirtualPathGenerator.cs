@@ -10,7 +10,7 @@ public class VirtualPathGenerator
 
     public enum DistributionType { Normal, Uniform };
     public enum AlternationType { None, Random, Constant };
-    public enum PathSeedChoice { Office, ExplorationSmall, ExplorationLarge, LongWalk, ZigZag };
+    public enum PathSeedChoice { Office, ExplorationSmall, ExplorationLarge, LongWalk, ZigZag, Maze };
 
 
     public struct SamplingDistribution
@@ -158,5 +158,16 @@ public class VirtualPathGenerator
         VirtualPathGenerator.SamplingDistribution angleSamplingDistribution = new VirtualPathGenerator.SamplingDistribution(VirtualPathGenerator.DistributionType.Uniform, 0, 0);
         int waypointCount = 1;
         return new VirtualPathGenerator.PathSeed(distanceSamplingDistribution, angleSamplingDistribution, waypointCount);
+    }
+
+    public static List<Vector2> getPathSeedMaze()
+    {
+        GameObject[] waypoints = GameObject.FindGameObjectsWithTag("WayPoint");
+        List<Vector2> wpCoords = new List<Vector2>();
+        foreach (var point in waypoints)
+        {
+            wpCoords.Add(Utilities.FlattenedPos2D(point.transform.position));
+        }
+        return wpCoords;
     }
 }

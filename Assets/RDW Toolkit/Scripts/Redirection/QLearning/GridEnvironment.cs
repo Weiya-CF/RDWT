@@ -5,21 +5,29 @@ using UnityEngine.UI;
 
 public class GridEnvironment : Environment
 {
-    [HideInInspector]
-    public RedirectionManager redirectionManager;
-    [HideInInspector]
+    [SerializeField]
     public SimulationManager simulationManager;
+
+    RedirectionManager redirectionManager;
+
+    public bool loadExistingQTable;
+    public bool saveQTable;
+
 
     [Tooltip("How we divide the tracking zone into grids")]
     public int gridSize;
  
     float episodeReward;
 
-    public void Start()
+    public void Initialize()
     {
-        waitTime = 0.001f;
-        BeginNewGame();
-        Debug.Log("The Environment " + this.envParameters.env_name + " has been created");
+        if (this.simulationManager.simuMode == SimulationManager.SimuMode.Learn)
+        {
+            this.redirectionManager = this.simulationManager.redirectionManager;
+            waitTime = 0.001f;
+            BeginNewGame();
+            Debug.Log("The Environment " + this.envParameters.env_name + " has been created");
+        }
     }
 
     /// <summary>
@@ -31,7 +39,21 @@ public class GridEnvironment : Environment
 
         SetUp();
         agent = new QLearningAgent();
-        agent.SendParameters(envParameters);
+
+        // if we continue a previous training
+        if (this.loadExistingQTable)
+        {
+            Debug.Log(this.loadExistingQTable);
+            #if UNITY_EDITOR
+            ((QLearningAgent)agent).LoadQTable("Assets/Resources/qtable.txt", envParameters.state_size, envParameters.action_size);
+            #endif
+            ((QLearningAgent)agent).action_size = envParameters.action_size;
+        }
+        else
+        {
+            agent.SendParameters(envParameters);
+        }
+        
         Reset();
 
     }
@@ -65,9 +87,13 @@ public class GridEnvironment : Environment
 
     private void Update()
     {
-        //waitTime = 1.0f - GameObject.Find("Slider").GetComponent<Slider>().value;
-        waitTime = 1f;
-        RunMdp();
+        if (this.simulationManager.simuMode == SimulationManager.SimuMode.Learn && !this.simulationManager.simuEnded)
+        {
+            //waitTime = 1.0f - GameObject.Find("Slider").GetComponent<Slider>().value;
+            waitTime = 1f;
+            RunMdp();
+        }
+        
     }
 
     /// <summary>
@@ -92,8 +118,8 @@ public class GridEnvironment : Environment
             reward = -1f;
         }
 
-        // A negative reward when the user is near the border of tracking zone
-        if (redirectionManager.inReset)
+        // A negative reward when the user is near the border of tracking zone, and facing the wall
+        if (redirectionManager.resetter.IsUserOutOfBounds() && redirectionManager.resetter.IsResetRequired())
         {
             reward = -100;
         }
@@ -131,7 +157,7 @@ public class GridEnvironment : Environment
 
         episodeReward = 0;
 
-        // user and trail drawing
+        // reset user and trail drawing
         this.simulationManager.ResetEpisode();
 
         // reset the internal state of agent

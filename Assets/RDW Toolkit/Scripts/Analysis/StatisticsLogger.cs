@@ -233,6 +233,46 @@ public class StatisticsLogger : MonoBehaviour {
         return experimentResults;
     }
 
+    public Dictionary<string, string> GetSummaryStatistics()
+    {
+        Dictionary<string, string> experimentResults = new Dictionary<string, string>();
+
+        experimentResults["reset_count"] = resetCount.ToString();
+        experimentResults["virtual_distance_between_resets_median"] = GetMedian(virtualDistancesTravelledBetweenResets).ToString();
+        experimentResults["time_elapsed_between_resets_median"] = GetMedian(timeElapsedBetweenResets).ToString();
+
+        experimentResults["sum_injected_translation"] = sumOfInjectedTranslation.ToString();
+        experimentResults["sum_injected_rotation_g_r"] = sumOfInjectedRotationFromRotationGain.ToString();
+        experimentResults["sum_injected_rotation_g_c"] = sumOfInjectedRotationFromCurvatureGain.ToString();
+        experimentResults["sum_real_distance_travelled"] = sumOfRealDistanceTravelled.ToString();
+        experimentResults["sum_virtual_distance_travelled"] = sumOfVirtualDistanceTravelled.ToString();
+        experimentResults["min_g_t"] = minTranslationGain < float.MaxValue ? minTranslationGain.ToString() : "N/A";
+        experimentResults["max_g_t"] = maxTranslationGain > float.MinValue ? maxTranslationGain.ToString() : "N/A";
+        experimentResults["min_g_r"] = minRotationGain < float.MaxValue ? minRotationGain.ToString() : "N/A";
+        experimentResults["max_g_r"] = maxRotationGain > float.MinValue ? maxRotationGain.ToString() : "N/A";
+        experimentResults["min_g_c"] = minCurvatureGain < float.MaxValue ? minCurvatureGain.ToString() : "N/A";
+        experimentResults["max_g_c"] = maxCurvatureGain > float.MinValue ? maxCurvatureGain.ToString() : "N/A";
+        experimentResults["g_t_average"] = GetAverageOfAbsoluteValues(translationGainSamples).ToString();
+        experimentResults["injected_translation_average"] = GetAverage(injectedTranslationSamples).ToString();
+        experimentResults["g_r_average"] = GetAverageOfAbsoluteValues(rotationGainSamples).ToString();
+        experimentResults["injected_rotation_from_rotation_gain_average"] = GetAverage(injectedRotationFromRotationGainSamples).ToString();
+        experimentResults["g_c_average"] = GetAverageOfAbsoluteValues(curvatureGainSamples).ToString();
+        experimentResults["injected_rotation_from_curvature_gain_average"] = GetAverage(injectedRotationFromCurvatureGainSamples).ToString();
+        experimentResults["injected_rotation_average"] = GetAverage(injectedRotationSamples).ToString();
+
+        experimentResults["real_position_average"] = GetAverage(userRealPositionSamples).ToString();
+        experimentResults["virtual_position_average"] = GetAverage(userVirtualPositionSamples).ToString();
+        experimentResults["distance_to_boundary_average"] = GetAverage(distanceToNearestBoundarySamples).ToString();
+        experimentResults["distance_to_center_average"] = GetAverage(distanceToCenterSamples).ToString();
+        experimentResults["normalized_distance_to_boundary_average"] = GetTrackingAreaNormalizedValue(GetAverage(distanceToNearestBoundarySamples)).ToString();
+        experimentResults["normalized_distance_to_center_average"] = GetTrackingAreaNormalizedValue(GetAverage(distanceToCenterSamples)).ToString();
+
+        experimentResults["experiment_duration"] = (experimentEndingTime - experimentBeginningTime).ToString();
+        experimentResults["average_sampling_interval"] = GetAverage(samplingIntervals).ToString();
+
+        return experimentResults;
+    }
+
     public void GetExperimentResultsForSampledVariables(out Dictionary<string, List<float>> oneDimensionalSamples, out Dictionary<string, List<Vector2>> twoDimensionalSamples)
     {
         oneDimensionalSamples = new Dictionary<string, List<float>>();
@@ -408,6 +448,7 @@ public class StatisticsLogger : MonoBehaviour {
         if (state == LoggingState.logging)
         {
             resetCount++;
+            Debug.Log("HHHHHHHHello "+resetCount);
             virtualDistancesTravelledBetweenResets.Add(virtualDistanceTravelledSinceLastReset);
             virtualDistanceTravelledSinceLastReset = 0;
             timeElapsedBetweenResets.Add(simulationManager.GetTime() - timeOfLastReset);
@@ -591,6 +632,7 @@ public class StatisticsLogger : MonoBehaviour {
 
     void Awake()
     {
+        Debug.Log("IIIIIIIIIIIIIIIIIIm awake");
         RESULT_DIRECTORY = SnapshotGenerator.GetProjectPath() + RESULT_DIRECTORY;
         SUMMARY_STATISTICS_DIRECTORY = RESULT_DIRECTORY + SUMMARY_STATISTICS_DIRECTORY;
         SAMPLED_METRICS_DIRECTORY = RESULT_DIRECTORY + SAMPLED_METRICS_DIRECTORY;

@@ -100,7 +100,7 @@ public class ZigZagRedirector : Redirector
         this.transform.rotation = desiredRotation;
         this.transform.position = point0 + this.transform.position.y * Vector3.up - pinnedPointPositionRotationCorrect;
 
-        if (simulationManager.motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot)
+        if (simulationManager.motionManager.movementController == MotionManager.MovementController.AutoPilot)
         {
             WAYPOINT_UPDATE_DISTANCE = 0.1f;
             SLOW_DOWN_VELOCITY_THRESHOLD = 100f;

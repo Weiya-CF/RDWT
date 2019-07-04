@@ -40,7 +40,7 @@ public class KeyboardController : MonoBehaviour {
 
 	// Update is called once per frame
 	void Update () {
-        if (!redirectionManager.simulationManager.userIsWalking || motionManager.MOVEMENT_CONTROLLER != MotionManager.MovementController.Keyboard)
+        if (!redirectionManager.simulationManager.simuEnded || motionManager.movementController != MotionManager.MovementController.Keyboard)
             return;
 
         Vector3 userForward = Utilities.FlattenedDir3D(this.transform.forward);

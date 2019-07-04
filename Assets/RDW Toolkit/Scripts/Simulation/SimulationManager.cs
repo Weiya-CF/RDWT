@@ -5,7 +5,7 @@ using System;
 
 public class SimulationManager : MonoBehaviour {
 
-    public enum SimuMode { Test, Learn };
+    public enum SimuMode { Test, Learn, Experiment };
 
     [SerializeField]
     public SimuMode simuMode;
@@ -52,8 +52,6 @@ public class SimulationManager : MonoBehaviour {
     public string startTimeOfProgram;
     [HideInInspector]
     public bool simuEnded;
-    [HideInInspector]
-    public bool episodeEnded;
 
     private float simulatedTime = 0;
 
@@ -92,6 +90,7 @@ public class SimulationManager : MonoBehaviour {
         this.redirectionManager.SetReferenceForResetter();
         this.redirectionManager.SetReferenceForResetTrigger();
         this.redirectionManager.SetBodyReferenceForResetTrigger();
+        this.redirectionManager.headTransform = this.simulatedHead;
 
         // Motion Manager
         this.motionManager.GetSimulatedWalker();
@@ -118,8 +117,6 @@ public class SimulationManager : MonoBehaviour {
         simulatedTime = 0;
         this.redirectionManager.Initialize();
 
-
-
         // Setting Random Seed
         UnityEngine.Random.InitState(VirtualPathGenerator.RANDOM_SEED);
 
@@ -139,11 +136,22 @@ public class SimulationManager : MonoBehaviour {
         this.trailDrawer.enabled = !this.runAtFullSpeed;
 
         // Enable Waypoint
-        userIsWalking = !(motionManager.MOVEMENT_CONTROLLER == MotionManager.MovementController.AutoPilot);
-
+        userIsWalking = !(motionManager.movementController == MotionManager.MovementController.AutoPilot);
         this.motionManager.Initialize();
-        this.motionManager.targetWaypoint.gameObject.SetActive(true);
 
+        switch (this.simuMode)
+        {
+            case SimuMode.Test:
+                GameObject.FindWithTag("LearningUI").SetActive(false);
+                break;
+            case SimuMode.Learn:
+                GameObject.FindWithTag("LearningUI").SetActive(true);
+                GridEnvironment grid_env = GameObject.Find("GridEnv").GetComponent(typeof(GridEnvironment)) as GridEnvironment;
+                grid_env.Initialize();
+                break;
+            case SimuMode.Experiment:
+                break;
+        }
     }
 
     // Update is called once per frame
@@ -162,7 +170,10 @@ public class SimulationManager : MonoBehaviour {
             simulatedTime += 1.0f / targetFPS;
 
             // Motion part
-            this.motionManager.UpdateWaypoint(this.redirectionManager.currState);
+            if (this.motionManager.movementController == MotionManager.MovementController.AutoPilot)
+            {
+                this.motionManager.UpdateWaypoint(this.redirectionManager.currState);
+            }
 
             // Redirection Part
             this.redirectionManager.Run();
@@ -177,6 +188,10 @@ public class SimulationManager : MonoBehaviour {
             }
         }
         
+    }
+    public void StopSimulation()
+    {
+        this.userIsWalking = false;
     }
 
     void SetReferenceForRedirectionManager()
@@ -260,9 +275,6 @@ public class SimulationManager : MonoBehaviour {
         simulatedHead = transform.Find("Simulated User").Find("Head");
     }
 
-
-
-
     public float GetDeltaTime()
     {
         if (useManualTime)
@@ -280,7 +292,7 @@ public class SimulationManager : MonoBehaviour {
     }
 
     
-
+    // For learning
     public void ResetEpisode()
     {
         this.trailDrawer.OnDisable();
@@ -292,7 +304,46 @@ public class SimulationManager : MonoBehaviour {
         this.redirectionManager.headTransform.position = Utilities.UnFlatten(Vector2.zero, this.redirectionManager.headTransform.position.y);
         this.redirectionManager.headTransform.rotation = Quaternion.LookRotation(Utilities.UnFlatten(Vector2.zero), Vector3.up);
 
+        // Reset waypoints for auto pilot
+        if (this.motionManager.movementController == MotionManager.MovementController.AutoPilot)
+        {
+            this.motionManager.targetWaypoint.position = new Vector3(motionManager.waypoints[0].x, motionManager.targetWaypoint.position.y, motionManager.waypoints[0].y);
+            this.motionManager.waypointIterator = 0;
+        }
+        
+
         this.trailDrawer.OnEnable();
+    }
+
+    public void EndRound()
+    {
+        if (this.simuMode == SimuMode.Test)
+        {
+            this.simuEnded = true;
+            Debug.Log("User arrived at destination.");
+        }
+        else if (this.simuMode == SimulationManager.SimuMode.Learn)
+        {
+            this.ResetEpisode();
+            // Stop when meets the max episode
+            GridEnvironment grid_env = GameObject.Find("GridEnv").GetComponent(typeof(GridEnvironment)) as GridEnvironment;
+            grid_env.done = true;
+
+            if (grid_env.episodeCount == grid_env.episodeMax)
+            {
+                this.simuEnded = true;
+                if (grid_env.saveQTable)
+                {
+                    ((QLearningAgent)grid_env.agent).SaveQTable("Assets/Resources/qtable.txt");
+                }
+
+                // Log All Summary Statistics To File
+                this.statisticsLogger.EndLogging();
+                this.statisticsLogger.LogExperimentSummaryStatisticsResultsSCSV(this.statisticsLogger.experimentResults);
+                Debug.Log("Statistics complete");
+
+            }
+        }
     }
 
 }

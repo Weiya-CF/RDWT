@@ -4,7 +4,8 @@ using System.Collections.Generic;
 
 public class RedirectionManager : MonoBehaviour {
 
-    enum AlgorithmChoice { None, S2C, S2O, Zigzag, MPC, Q };
+    [HideInInspector]
+    public enum AlgorithmChoice { None, S2C, S2O, Zigzag, MPC, Q };
     enum ResetChoice { None, TwoOneTurn };
 
     [SerializeField]
@@ -256,7 +257,7 @@ public class RedirectionManager : MonoBehaviour {
             if (resetter != null)
             {
                 resetter.ApplyResetting();
-                Debug.LogWarning("Reset Calledddd!");
+                //Debug.LogWarning("Reset Calledddd!");
             }
         }
         else
@@ -264,7 +265,7 @@ public class RedirectionManager : MonoBehaviour {
             if (redirector != null)
             {
                 redirector.ApplyRedirection();
-                Debug.LogWarning("Redirection Calledddd!");
+                //Debug.LogWarning("Redirection Calledddd!");
             }
         }
 
@@ -287,9 +288,10 @@ public class RedirectionManager : MonoBehaviour {
             Debug.Log("RESET WAS REQUIRED");
             resetter.InitializeReset();
             inReset = true;
+            this.simulationManager.statisticsLogger.Event_Reset_Triggered();
 
             // stop the planning thread
-            if(redirector is MPCRedirector)
+            if (redirector is MPCRedirector)
             {
                 ((MPCRedirector)redirector).toPause = true;
                 Debug.LogWarning("planning is paused");
