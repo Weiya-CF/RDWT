@@ -189,10 +189,6 @@ public class SimulationManager : MonoBehaviour {
         }
         
     }
-    public void StopSimulation()
-    {
-        this.userIsWalking = false;
-    }
 
     void SetReferenceForRedirectionManager()
     {
@@ -310,13 +306,14 @@ public class SimulationManager : MonoBehaviour {
             this.motionManager.targetWaypoint.position = new Vector3(motionManager.waypoints[0].x, motionManager.targetWaypoint.position.y, motionManager.waypoints[0].y);
             this.motionManager.waypointIterator = 0;
         }
-        
 
         this.trailDrawer.OnEnable();
+
     }
 
     public void EndRound()
     {
+        this.userIsWalking = false;
         if (this.simuMode == SimuMode.Test)
         {
             this.simuEnded = true;
@@ -325,6 +322,7 @@ public class SimulationManager : MonoBehaviour {
         else if (this.simuMode == SimulationManager.SimuMode.Learn)
         {
             this.ResetEpisode();
+            this.statisticsLogger.EndLogging();
             // Stop when meets the max episode
             GridEnvironment grid_env = GameObject.Find("GridEnv").GetComponent(typeof(GridEnvironment)) as GridEnvironment;
             grid_env.done = true;
@@ -338,7 +336,6 @@ public class SimulationManager : MonoBehaviour {
                 }
 
                 // Log All Summary Statistics To File
-                this.statisticsLogger.EndLogging();
                 this.statisticsLogger.LogExperimentSummaryStatisticsResultsSCSV(this.statisticsLogger.experimentResults);
                 Debug.Log("Statistics complete");
 

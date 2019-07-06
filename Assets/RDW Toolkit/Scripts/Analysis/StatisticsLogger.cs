@@ -448,7 +448,7 @@ public class StatisticsLogger : MonoBehaviour {
         if (state == LoggingState.logging)
         {
             resetCount++;
-            Debug.Log("HHHHHHHHello "+resetCount);
+            Debug.Log("Reset count: "+resetCount);
             virtualDistancesTravelledBetweenResets.Add(virtualDistanceTravelledSinceLastReset);
             virtualDistanceTravelledSinceLastReset = 0;
             timeElapsedBetweenResets.Add(simulationManager.GetTime() - timeOfLastReset);
@@ -528,6 +528,7 @@ public class StatisticsLogger : MonoBehaviour {
         virtualDistancesTravelledBetweenResets.Add(virtualDistanceTravelledSinceLastReset);
         timeElapsedBetweenResets.Add(simulationManager.GetTime() - timeOfLastReset);
         experimentEndingTime = simulationManager.GetTime();
+        resetCount = 0;
     }
 
     // This function introduces lots of floating point error and I'd rather see clean values than noisy accurate weighted measurements
@@ -632,7 +633,7 @@ public class StatisticsLogger : MonoBehaviour {
 
     void Awake()
     {
-        Debug.Log("IIIIIIIIIIIIIIIIIIm awake");
+        Debug.Log("Logger is awake");
         RESULT_DIRECTORY = SnapshotGenerator.GetProjectPath() + RESULT_DIRECTORY;
         SUMMARY_STATISTICS_DIRECTORY = RESULT_DIRECTORY + SUMMARY_STATISTICS_DIRECTORY;
         SAMPLED_METRICS_DIRECTORY = RESULT_DIRECTORY + SAMPLED_METRICS_DIRECTORY;
@@ -690,13 +691,15 @@ public class StatisticsLogger : MonoBehaviour {
         {
             // Set up the headers
             csvWriter.Write("experiment_start_time;");
+            csvWriter.WriteLine(simulationManager.startTimeOfProgram + ";");
+
             foreach (string header in experimentResults[0].Keys)
             {
                 csvWriter.Write(header + ";");
             }
             csvWriter.WriteLine();
+            
             // Write Values
-            csvWriter.Write(simulationManager.startTimeOfProgram +";");
             foreach (Dictionary<string, string> experimentResult in experimentResults)
             {
                 foreach (string value in experimentResult.Values)
